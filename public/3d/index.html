@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>锦糸町 3D Walk</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="loading"><div class="loading-card"><div class="spinner"></div><div id="loadingText">正在加载锦糸町附近地图…</div><div class="sub">首次进入会从 OpenStreetMap / Overpass 获取建筑与道路。</div></div></div>
+  <div id="hud"><div class="title">錦糸町 3D WALK</div><div id="coord">35.696799, 139.814049</div><div id="stats">Buildings: --</div></div>
+  <div id="crosshair">+</div>
+  <div id="help"><b>点击画面进入步行模式</b><br>WASD 移动　Shift 加速　鼠标转向　Esc 释放鼠标</div>
+  <div id="attribution">© OpenStreetMap contributors · Buildings rendered with Three.js</div>
+  <button id="resetBtn" type="button">回到锦糸町站</button>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
