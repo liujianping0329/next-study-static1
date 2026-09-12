@@ -1,0 +1,16 @@
+{
+  "name": "next-study-static",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "sync:study": "node scripts/sync-study.mjs",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "15.5.7",
+    "react": "19.2.1",
+    "react-dom": "19.2.1"
+  }
+}

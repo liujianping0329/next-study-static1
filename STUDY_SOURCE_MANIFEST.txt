@@ -1,0 +1,4 @@
+Source: https://github.com/liujianping0329/next-market/tree/main/public/study
+Verified source tree SHA: 8e6f6c611c4db720c28b8349938f263c5afbf454
+Verified file count at 2026-09-12: 33
+The sync script recursively mirrors all blobs below public/study/.
