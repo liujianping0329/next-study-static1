@@ -1,0 +1,55 @@
+name: Unpack market HTML
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    if: ${{ !contains(github.event.head_commit.message, '[unpack-market]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Unpack dashboard wrapper to plain HTML
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, base64, gzip, datetime, zoneinfo, sys
+          p=Path('public/study/market/index.html')
+          s=p.read_text(encoding='utf-8')
+          m=re.search(r"const b='([^']+)'", s)
+          if not m:
+              print('index is already plain HTML; nothing to unpack')
+              sys.exit(0)
+          try:
+              t=gzip.decompress(base64.b64decode(m.group(1))).decode('utf-8')
+          except Exception as e:
+              raise SystemExit(f'unpack failed: {e}')
+          # Main page must not need a second network request to render.
+          if re.search(r'\bfetch\s*\(|XMLHttpRequest\s*\(', t):
+              raise SystemExit('decoded dashboard still contains runtime fetch/XHR; aborting')
+          if 'DecompressionStream' in t:
+              raise SystemExit('decoded dashboard unexpectedly contains DecompressionStream; aborting')
+          p.write_text(t, encoding='utf-8')
+          today=datetime.datetime.now(zoneinfo.ZoneInfo('Asia/Tokyo')).strftime('%Y-%m-%d')
+          Path(f'public/study/market/{today}.html').write_text(t, encoding='utf-8')
+          print('unpacked bytes:', len(t.encode('utf-8')), 'date:', today)
+          PY
+      - name: Commit plain HTML
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/study/market/index.html public/study/market/$(TZ=Asia/Tokyo date +%F).html
+          if git diff --cached --quiet; then
+            echo 'No unpack changes needed.'
+            exit 0
+          fi
+          git commit -m 'market: [unpack-market] publish plain self-contained HTML'
+          git push
