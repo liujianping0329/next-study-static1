@@ -1,0 +1,110 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>正式 Day 14｜GC Roots、GC 基础算法与长期 Memory 工程化</title><style>:root{--bg:#f5f6f8;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--soft:#f3f4f6;--code:#0f172a;--codeText:#e5e7eb;--good:#ecfdf5;--warn:#fff7ed;--ai:#eff6ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;line-height:1.7}.container{width:min(1000px,calc(100% - 32px));margin:36px auto 64px}.hero,.card{background:var(--card);border:1px solid var(--border);box-shadow:0 10px 28px rgba(15,23,42,.04)}.hero{border-radius:20px;padding:34px;margin-bottom:24px}.hero h1{margin:0;font-size:30px}.sub,.source,.footer{color:var(--muted)}.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.tag{font-size:12px;background:var(--soft);border-radius:999px;padding:4px 9px}.card{border-radius:16px;padding:26px 28px;margin-bottom:18px}h2{margin:0 0 14px;font-size:21px}h3{margin:24px 0 10px;font-size:18px}.source{font-size:13px;border-left:3px solid #d1d5db;padding-left:10px;margin:12px 0 18px}pre{background:var(--code);color:var(--codeText);border-radius:12px;padding:16px;overflow:auto;white-space:pre-wrap}code{font-family:Consolas,Monaco,monospace}.box{border-radius:12px;padding:14px 16px;margin:14px 0;border:1px solid var(--border)}.good{background:var(--good)}.warn{background:var(--warn)}.ai{background:var(--ai)}.answer{border-left:4px solid #111827;background:#fafafa;padding:14px 16px;border-radius:0 10px 10px 0;margin-top:12px}table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}th,td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top}th{background:var(--soft)}details{margin:12px 0;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fafafa}summary{cursor:pointer;font-weight:700}.footer{text-align:center;font-size:13px;margin-top:30px}@media(max-width:600px){.container{width:min(100% - 20px,1000px);margin-top:20px}.hero{padding:24px 20px}.card{padding:20px}}</style></head><body><main class="container"><section class="hero"><h1>正式 Day 14｜GC Roots、GC 基础算法与长期 Memory 工程化</h1><div class="sub">2026-09-13｜前一天复习 + 固定 5 道新题</div><div class="meta"><span class="tag">GC Roots</span><span class="tag">Reachability</span><span class="tag">Mark-Sweep</span><span class="tag">Mark-Copy</span><span class="tag">Agent Memory</span><span class="tag">Spring AI</span><span class="tag">Dependency Management</span></div><div class="box good"><strong>正式进度推进：</strong>后端正式 #38～#40（JVM #12～#14）+ Agent/RAG 1.1.14 + AI基础原资料 #15。</div></section><section class="card"><h2>① 前一天复习｜先凭记忆回答</h2><div class="source">复习来源：2026-09-12 正式 Day 13。自动学习无法等待实时作答，因此答案放入折叠区；建议每题先口述 20～30 秒，再展开核对。未收到用户回答时不虚构“已掌握”评分。</div><h3>复习 1｜JPMS</h3><p>先回答：<code>requires</code>、<code>exports</code>、<code>opens</code> 分别控制什么？JPMS 和 Maven Module 是一回事吗？</p><details><summary>答完后展开</summary><p><code>requires</code> 声明模块依赖；<code>exports</code> 控制哪些 package 对其他模块的普通代码访问开放；<code>opens</code> 主要影响深反射访问。JPMS 是 JVM/Java 平台级模块系统，Maven Module 是构建工具层面的工程拆分，两者不是同一概念。</p><div class="answer"><strong>面试口述版：</strong>JPMS 通过 requires 表达依赖，通过 exports 控制普通 API 可见性，通过 opens 控制反射开放。它是 Java 运行时模块系统，不等同于 Maven 多模块工程。</div></details><h3>复习 2｜Class Identity</h3><p>先回答：为什么会出现 <code>com.demo.User cannot be cast to com.demo.User</code>？</p><details><summary>答完后展开</summary><p>JVM 判断类型身份不只看二进制类名，还看 defining ClassLoader。两个不同 ClassLoader 分别定义同名类时，JVM 认为它们是不同类型，因此可能出现“同名类不能互转”。</p></details><h3>复习 3｜GC 为什么仍会有内存泄漏</h3><p>先回答：GC 判断“对象可不可达”和业务判断“对象还有没有用”为什么不是同一件事？</p><details><summary>答完后展开</summary><p>只要对象仍能从 GC Roots 通过引用链到达，GC 就必须把它当成存活对象。即使它对业务已经没用了，只要仍被 static 集合、ThreadLocal、Listener、Cache、ClassLoader 等引用，就会继续留存。</p></details><h3>复习 4｜Agent 上下文管理</h3><p>先回答：ChatMemory、关系数据库和 VectorStore 各适合存什么？为什么不能把所有内容都做向量化？</p><details><summary>答完后展开</summary><p>ChatMemory 适合当前会话窗口；关系数据库适合需要精确覆盖、更新、权限控制的结构化事实；VectorStore 适合语义检索的历史片段和摘要。姓名、开关、权限等精确信息若只做向量检索，会带来命中不稳定和更新语义不清的问题。</p></details><h3>复习 5｜AI 性能优化</h3><p>先回答：为什么 AI 系统要“先 Trace 再优化”？Streaming 能不能直接降低总生成时间？</p><details><summary>答完后展开</summary><p>AI 请求链可能慢在模型、RAG、Embedding、Tool、DB、网络或队列等待，先 Trace 才知道真正瓶颈。Streaming 主要改善首 Token 时间和用户感知等待，不保证减少模型完成全部输出的总耗时。</p></details><h3>间隔复习｜约 3 天前：Metaspace</h3><p>为什么 Metaspace OOM 时不能只把 <code>MaxMetaspaceSize</code> 调大？</p><details><summary>答完后展开</summary><p>如果根因是动态类持续生成或 ClassLoader 泄漏，增加上限只是推迟 OOM。应检查类数量、ClassLoader 生命周期和动态代理/字节码生成链路。</p></details><h3>间隔复习｜约 7 天前：ThreadLocal</h3><p>ThreadLocalMap 的 Key 已经是弱引用，为什么仍然强调 <code>finally remove()</code>？</p><details><summary>答完后展开</summary><p>Key 被 GC 后可能变成 null，但 Entry 的 Value 仍是强引用。线程池线程长期存活时，Value 可能持续滞留；线程复用还可能导致上下文污染，因此应在 finally 中 remove。</p></details></section><section class="card"><h2>② 新题 1｜什么是 GC Roots 和可达性分析算法？</h2><div class="source"><strong>原资料：</strong>《后端高频面试题大集合》JVM 第 12 题“介绍下什么是GCRoot和可达性分析算法”｜PDF 第 50～51 页。正式后端 #38。</div><h3>概念</h3><p>可达性分析（Reachability Analysis）的核心问题不是“这个对象有没有被任何东西引用”，而是：</p><pre><code>从一组 GC Roots 出发
+        ↓
+沿对象引用关系向下搜索
+        ↓
+能走到的对象 → 视为存活
+走不到的对象 → 可以进入垃圾回收判断</code></pre><p>GC Roots 可以理解成垃圾回收时的“引用图起点”。经典高频来源包括：正在执行线程栈帧中的引用、类静态字段引用、JNI 本地引用等。</p><h3>原理</h3><pre><code>GC Roots
+├─ Thread Stack local → A → B
+├─ static field       → C
+└─ JNI handle         → D
+
+E → F   （与任何 Root 不连通）
+
+结果：A/B/C/D 可达；E/F 不可达</code></pre><p>为什么 Java 不单纯使用“引用计数”？因为循环引用会让引用计数无法归零：</p><pre><code>A → B
+↑   ↓
+└───┘
+
+外界已没有任何入口，但 A/B 互相引用。
+可达性分析仍能判断：从 GC Roots 根本到不了它们。</code></pre><h3>为什么</h3><p>GC 必须有一个稳定、可实现的对象存活判断标准。可达性分析把对象图转化为“从根出发的图遍历”，能处理循环引用，是现代 tracing GC 的基础思想。</p><h3>实际项目怎么用</h3><p>发生 Java Heap 泄漏时，MAT/JProfiler 的 <strong>Path to GC Roots</strong> 就是在回答：这个对象到底通过哪条引用链还被 Root 留住？例如：</p><pre><code>GC Root
+↓
+ThreadPool Worker
+↓
+ThreadLocalMap
+↓
+Entry.value
+↓
+HugeUserContext</code></pre><p>这比只看“哪个类实例最多”更接近真正根因。</p><h3>AI补充/纠错</h3><div class="box ai"><strong>AI补充/纠错：</strong>原资料把 GC Roots 简化成“堆外指向堆内的引用”，这可以帮助入门，但不够严谨。面试建议直接说“GC 实现定义的一组根引用集合”，并举线程栈、静态字段、JNI 等典型来源。另一个易错点是：<strong>不可达并不等于这一瞬间已经释放内存</strong>，它只是满足被回收的核心条件，实际回收时机仍由 GC 决定。</div><h3>常见坑</h3><ul><li>把“对象没有任何引用”当成 GC 唯一判断标准。</li><li>不知道循环引用为什么不是 Java tracing GC 的主要问题。</li><li>Heap Dump 只看 shallow size，不看 retained size 和 Path to GC Roots。</li></ul><div class="answer"><strong>面试口述版：</strong>Java 主要通过可达性分析判断对象存活，从线程栈引用、静态字段、JNI 等 GC Roots 出发遍历对象图，能到达的对象视为存活，无法到达的对象才具备被回收条件。线上排查内存泄漏时我会重点看 Path to GC Roots，确认到底是谁把本应释放的对象继续引用着。</div><h3>可能追问</h3><p>为什么引用计数解决不了循环引用？GC Roots 都有哪些典型来源？MAT 的 retained size 与 shallow size 有什么区别？</p></section><section class="card"><h2>③ 新题 2｜Mark-Sweep 标记-清除算法原理和优缺点</h2><div class="source"><strong>原资料：</strong>《后端高频面试题大集合》JVM 第 13 题“介绍下JVM的标记-清除算法原理和优缺点”｜PDF 第 52～53 页。正式后端 #39。</div><h3>概念与原理</h3><pre><code>阶段 1：Mark
+从 GC Roots 出发
+→ 找到存活对象并标记
+
+阶段 2：Sweep
+扫描内存
+→ 回收未标记对象占用的空间</code></pre><p>示意：</p><pre><code>回收前： [A活][垃圾][B活][垃圾][垃圾][C活]
+清除后： [A活][空 ][B活][空 ][空 ][C活]
+
+问题：空闲空间是离散的 → fragmentation</code></pre><h3>为什么</h3><p>它是最基础的 tracing GC 思路之一：先把活对象区分出来，再释放死对象所占空间。实现逻辑直观，而且不要求把所有存活对象移动到新地址。</p><h3>优点</h3><ul><li>不必像复制算法那样预留一整块同等大小的 to-space。</li><li>不需要为了回收而复制所有存活对象，存活率很高时复制压力相对小。</li></ul><h3>缺点</h3><ul><li>标记与清除都需要扫描/处理对象或内存结构，存在开销。</li><li>回收后容易产生<strong>内存碎片</strong>，大对象分配时可能明明总空闲很多，却找不到足够连续空间。</li><li>真实 GC 还要解决并发修改、暂停时间、对象引用更新等复杂问题。</li></ul><h3>实际项目怎么用</h3><p>面试里更重要的是用它解释“为什么后来需要 Copying / Mark-Compact / Region 化 GC”。如果线上观察到 Full GC 后堆占用明显下降，但大对象分配仍困难，碎片化可能是分析方向之一，不过现代收集器具体行为要结合 GC 类型看。</p><h3>AI补充/纠错</h3><div class="box warn"><strong>AI补充/纠错：</strong>原资料说“标记阶段会遍历整个对象图、清除阶段回收所有未标记对象”，用于理解算法没有问题，但不要直接把这个教学模型等同于 G1、ZGC 等现代收集器的完整实现。现代 GC 会结合 Region、并发标记、转移/压缩、Remembered Set/Load Barrier 等机制。面试可把 Mark-Sweep 说成基础算法思想。</div><h3>常见坑</h3><ul><li>把“内存碎片”说成内存泄漏。</li><li>认为 Mark-Sweep 一定会移动对象；基础标记-清除并不要求移动存活对象。</li><li>把算法概念直接等同于某一个现代 GC。</li></ul><div class="answer"><strong>面试口述版：</strong>标记-清除分为 Mark 和 Sweep 两步：先从 GC Roots 标记存活对象，再释放未标记对象。优点是思路简单且不需要为所有存活对象做复制；主要问题是扫描开销和内存碎片，所以后来出现了复制、标记整理以及现代 Region 化收集器来改善这些问题。</div><h3>可能追问</h3><p>碎片和泄漏有什么区别？为什么碎片会影响大对象分配？Mark-Compact 相比 Mark-Sweep 多了什么？</p></section><section class="card"><h2>④ 新题 3｜Mark-Copy 标记-复制算法原理和优缺点</h2><div class="source"><strong>原资料：</strong>《后端高频面试题大集合》JVM 第 14 题“介绍下JVM的标记-复制算法原理和优缺点”｜PDF 第 54 页。正式后端 #40。</div><h3>概念</h3><p>基础 Copying GC 会把内存逻辑上分成 from-space / to-space：</p><pre><code>GC 前
+From: [A活][垃圾][B活][垃圾][C活]
+To:   [                    空                    ]
+
+GC
+A/B/C → 复制到 To，并更新引用
+
+GC 后
+To:   [A活][B活][C活][连续空闲........]
+From: 整体可重新使用</code></pre><h3>原理</h3><p>它的关键并不是“先把整个堆平均切成两半”这句话本身，而是：<strong>只搬运存活对象，回收后得到紧凑、连续的可用空间</strong>。</p><h3>为什么</h3><p>如果某个区域绝大多数对象都很快死亡，那么真正需要复制的存活对象很少。这个特点非常适合解释年轻代为什么历史上常使用复制思想。</p><h3>优点</h3><ul><li>回收后对象排列紧凑，几乎没有传统意义上的外部碎片。</li><li>当存活率低时，只复制少量存活对象，回收效率很高。</li><li>分配新对象时通常可以使用简单、快速的 bump-the-pointer 思路。</li></ul><h3>缺点</h3><ul><li>需要额外的目标空间。</li><li>存活率高时复制成本上升。</li><li>对象移动后必须更新相关引用。</li></ul><h3>实际项目怎么用</h3><p>最经典的理解是年轻代：对象朝生夕死，GC 时只需要保留少数存活对象。但现代 G1 不是固定“整半堆 From/To”，而是把存活对象从回收集合中的 Region evacuation 到其他 Region，本质上仍包含复制/转移思想。</p><h3>AI补充/纠错</h3><div class="box ai"><strong>AI补充/纠错：</strong>原资料直接说“需要两倍于原有内存空间”是基础二等分 Copying 算法的经典缺点，但不能机械套用到所有现代 JVM 实现。HotSpot 年轻代历史上使用 Eden + Survivor 设计，就是为了避免简单 50/50 切半浪费；G1 又进一步采用 Region evacuation。面试先讲算法原理，再说明现代实现做了空间利用优化。</div><h3>常见坑</h3><ul><li>认为所有复制算法都必须永久浪费 50% 堆。</li><li>忽略“存活率”决定复制成本。</li><li>只会背 Eden:S0:S1，而解释不了为什么年轻代适合复制思想。</li></ul><div class="answer"><strong>面试口述版：</strong>标记-复制的核心是把存活对象转移到另一块空间，并更新引用，原区域可以整体回收。它几乎不产生外部碎片，在存活率低时效率很高，因此非常适合解释年轻代 GC；缺点是需要额外空间，而且存活率高时复制成本变大。现代 G1 的 Region evacuation 也体现了对象转移思想，但不是简单把整个堆一分为二。</div><h3>可能追问</h3><p>为什么年轻代适合复制算法？Eden/Survivor 如何改进 50/50 空间浪费？G1 Evacuation 和经典 Copying 有什么联系？</p></section><section class="card"><h2>⑤ 新题 4｜如何构建长期 Memory，让模型逐渐学习用户习惯？</h2><div class="source"><strong>原资料：</strong>《AI应用开发面试题 / Agent / RAG》1.1.14“如何构建工具实现 memory 记忆，让大模型在长期对话中学习用户习惯？”｜PDF 第 26～28 页。</div><h3>概念</h3><p>长期 Memory 不是“把所有聊天永久塞回 Prompt”，而是建立一条：</p><pre><code>Conversation
+   ↓
+Memory Extractor
+   ↓
+Candidate Memory
+   ↓
+Validation / Merge / Conflict Resolve
+   ↓
+Structured Profile + Semantic Memory
+   ↓
+下次按需检索
+   ↓
+Context Assembly</code></pre><h3>原理</h3><p>原资料提出“结构化偏好 + 向量语义记忆”的混合设计，这个方向是合理的：</p><table><tr><th>数据</th><th>推荐存储</th><th>原因</th></tr><tr><td>语言、框架偏好、明确设置</td><td>PostgreSQL / KV</td><td>需要精确覆盖、审计、删除</td></tr><tr><td>最近对话上下文</td><td>ChatMemory</td><td>属于短期会话窗口</td></tr><tr><td>历史摘要、经验片段</td><td>VectorStore</td><td>按当前问题做语义召回</td></tr></table><h3>为什么</h3><p>如果每轮都带全量历史，Token 会持续膨胀；如果什么都向量化，像“用户首选语言=中文”这类精确事实又会出现更新、冲突和命中不稳定。因此长期 Memory 必须区分<strong>记录什么、何时写入、如何合并、何时读取</strong>。</p><h3>Java / Spring AI 实际项目怎么用</h3><pre><code>ChatClient
+  + MessageChatMemoryAdvisor      // 短期会话
+  + MemoryExtractionService       // 自己实现长期事实提取
+  + PostgreSQL user_profile       // 精确偏好
+  + VectorStore                   // 历史语义记忆
+  + MemoryRetrievalAdvisor/Service
+</code></pre><p>Spring AI 2.0.1 官方把 <code>ChatMemory</code> 定位为当前对话所需的上下文记忆，而不是完整聊天历史；每次 Memory 操作都依赖 conversation ID。多用户应用应该由服务端生成用户/会话唯一 ID，避免跨用户串记忆。</p><pre><code>conversationId = userId + ":" + sessionId
+
+current query
+  ↓
+load structured profile
+  ↓
+semantic search long-term memories
+  ↓
+merge + token budget
+  ↓
+ChatClient</code></pre><h3>写入策略</h3><ul><li><strong>不是每句话都记：</strong>先判断是否稳定、跨会话有价值。</li><li><strong>带置信度：</strong>“我偶尔喝咖啡”不能直接固化成“用户每天喝咖啡”。</li><li><strong>可覆盖：</strong>新事实与旧事实冲突时，按时间、明确程度和来源更新。</li><li><strong>可删除：</strong>用户修改或删除个人偏好时，要有精确删除路径。</li><li><strong>租户隔离：</strong>userId / tenantId / sessionId 必须参与授权与检索过滤。</li></ul><h3>AI补充/纠错</h3><div class="box ai"><strong>AI补充/纠错：</strong>原资料示例中“第 3～5 次交互形成模式、第 10+ 次形成稳定画像”只能作为说明，不应当硬编码成通用阈值。更好的工程设计是 confidence + evidence count + explicit user confirmation。Spring AI 的 ChatMemory 也不能直接等同于“长期用户画像”；它负责的是对话记忆抽象，长期画像通常需要业务层单独设计。当前官方文档还明确区分 Chat Memory 与完整 Chat History，后者建议使用更适合审计/历史保存的数据层。</div><h3>常见坑</h3><ul><li>把模型一次推断出的偏好直接当永久事实。</li><li>不同用户共用固定 conversation ID。</li><li>把完整聊天历史当 Memory，每轮全量回灌。</li><li>只存 VectorStore，没有精确更新、删除和冲突解决。</li><li>把敏感信息“顺手记住”，却没有权限和数据生命周期设计。</li></ul><div class="answer"><strong>面试口述版：</strong>长期 Memory 我会拆成短期 ChatMemory、结构化用户画像和可语义检索的历史记忆三层。每轮对话先提取候选事实，再做稳定性、置信度和冲突判断，明确偏好存数据库，历史摘要存 VectorStore；下一轮只检索当前任务相关的记忆注入上下文。Spring AI 的 ChatMemory 负责会话记忆，长期画像和生命周期治理我会放在业务层完成。</div><h3>可能追问</h3><p>什么时候一条信息值得进入长期记忆？冲突记忆如何解决？用户要求“忘记”时怎么做到精确删除？VectorStore 如何做 tenant/user metadata filter？</p></section><section class="card"><h2>⑥ 新题 5｜LangChain 项目如何保证环境与依赖正确？Java / Spring AI 怎么对应？</h2><div class="source"><strong>原资料：</strong>《AI大模型面试题-基础篇》第 15 题“在LangChain项目开发中，如何确保环境配置的正确性和依赖管理？”｜PDF 第 13 页。原 PDF 在 #15 后直接进入 #17，今天保留原资料编号，不虚构 #16。</div><h3>概念</h3><p>原资料给出的核心是：</p><pre><code>独立 Python 虚拟环境
++ 固定依赖版本
++ 验证核心模块
++ 团队统一依赖
++ 处理版本冲突 / 跨平台问题</code></pre><p>本质上不是“会不会敲 pip 命令”，而是要保证：</p><pre><code>开发机 A
+开发机 B
+CI
+生产容器
+
+→ 对同一份源码解析出尽可能一致、可复现的依赖与运行环境</code></pre><h3>为什么</h3><p>AI SDK 和生态更新很快，模型 Provider、HTTP Client、Pydantic/JSON Schema、向量库客户端等经常存在版本联动。环境漂移会制造“我本地能跑、服务器不能跑”的问题。</p><h3>Python 原资料视角</h3><ul><li>使用 <code>venv</code>/Conda/uv/Poetry 等做项目级隔离。</li><li>锁定依赖，优先使用可复现的 lock 文件或严格版本范围。</li><li>CI 中从干净环境安装并运行测试。</li><li>Docker 固定 OS 层和系统库依赖。</li></ul><h3>Java / Spring Boot / Spring AI 对应</h3><pre><code>pom.xml / build.gradle
+       ↓
+BOM 管版本
+       ↓
+Maven Wrapper / Gradle Wrapper
+       ↓
+固定 JDK 版本
+       ↓
+CI clean build + tests
+       ↓
+Docker / Runtime Image
+</code></pre><p>Spring 项目尤其适合使用 BOM 统一兼容版本，而不是手工给每个 Spring AI starter 随意拼版本。例如：</p><pre><code>&lt;dependencyManagement&gt;
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-ai-bom&lt;/artifactId&gt;
+      &lt;version&gt;...&lt;/version&gt;
+      &lt;type&gt;pom&lt;/type&gt;
+      &lt;scope&gt;import&lt;/scope&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;</code></pre><h3>实际项目怎么用</h3><p>你的 Spring AI 项目可以至少固定：</p><pre><code>JDK
+Spring Boot
+Spring AI BOM
+DB Driver
+Provider Starter
+Maven Wrapper
+Docker Base Image
+</code></pre><p>再让 CI 执行：</p><pre><code>./mvnw clean verify
+</code></pre><p>这样新电脑、CI 和部署环境都不依赖“某个人机器里碰巧装了什么”。</p><h3>AI补充/纠错</h3><div class="box warn"><strong>AI补充/纠错：</strong>原资料只提 <code>requirements.txt</code>，属于较基础做法。真正追求可重复构建时，更重要的是 lock / 依赖解析结果、运行时版本和 CI 干净构建。Java 侧则不是靠 venv，而是 Maven/Gradle 的项目依赖隔离 + BOM + Wrapper + JDK/容器版本共同完成。另一个原则是：<strong>不要为了“保持最新”自动升级生产依赖；升级应通过测试、兼容性验证和回滚方案。</strong></div><h3>常见坑</h3><ul><li>只固定直接依赖，不关注传递依赖变化。</li><li>本地用一个 JDK，CI/生产用另一个。</li><li>Spring Boot、Spring AI 和 Provider starter 随意混版本。</li><li>只在已有开发机测试，从未验证 clean environment build。</li></ul><div class="answer"><strong>面试口述版：</strong>环境与依赖管理的目标是可隔离、可复现、可验证。Python 会通过虚拟环境和 lock/requirements 管理依赖；Java/Spring AI 项目我会通过 Maven/Gradle、BOM、Wrapper、固定 JDK、CI clean build 和 Docker 保证一致性。依赖升级不是越新越好，而是要经过自动测试和兼容性验证。</div><h3>可能追问</h3><p>BOM 解决什么问题？Maven Wrapper 为什么有价值？怎样发现传递依赖冲突？为什么 Docker 也不能替代依赖版本管理？</p></section><section class="card"><h2>⑦ 今日正式进度</h2><p>《后端高频面试题大集合》：正式 #1～#40；今天 JVM #12～#14。<br>《AI应用开发面试题 / Agent / RAG》：1.1.1～1.1.14。<br>《AI大模型面试题-基础篇》：已学习 #1～#8、#10～#15；原 PDF #9 缺号继续保留，且原 PDF 在 #15 后直接进入 #17，#16 也暂不自行补造。</p></section><div class="footer">Java 后端 + AI 面试知识学习记录｜2026-09-13</div></main></body></html>
