@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>锦糸町 3D Walk</title>
+  <title>Kinshicho Street Walk</title>
   <link rel="stylesheet" href="./style.css" />
   <script type="importmap">
   {
@@ -16,21 +16,32 @@
 </head>
 <body>
   <div id="loading">
-    <div class="loading-card">
+    <div class="card">
       <div class="spinner"></div>
-      <div id="loadingText">正在加载锦糸町附近地图…</div>
-      <div class="sub">会从 OpenStreetMap / Overpass 获取建筑与道路，并生成带贴图感的可行走 3D 地图。</div>
+      <div class="main">正在进入錦糸町 Street Walk…</div>
+      <div class="sub">这次不追求地图还原，而是做成更适合“云逛街”的风格化街区。</div>
     </div>
   </div>
+
   <div id="hud">
-    <div class="title">錦糸町 3D WALK</div>
-    <div id="coord">35.696799, 139.814049</div>
-    <div id="stats">Buildings: --</div>
+    <div class="brand">KINSHICHO STREET WALK</div>
+    <div id="district">区域：站前广场</div>
+    <div id="tipline">点击画面进入漫游</div>
   </div>
+
+  <div id="toolbar">
+    <button id="resetBtn" type="button">回到起点</button>
+    <button id="guideBtn" type="button">导览模式：关</button>
+    <button id="themeBtn" type="button">场景：傍晚</button>
+  </div>
+
+  <div id="help">
+    <b>自由逛：</b>点击进入漫游，WASD / 方向键移动，Shift 小跑，Esc 释放鼠标<br>
+    <b>推荐逛：</b>开启导览模式，会自动带你经过站前、商店街、小巷、公园和晴空塔远景
+  </div>
+
   <div id="crosshair">+</div>
-  <div id="help"><b>先点击画面进入步行模式</b><br>WASD / 方向键移动　Shift 加速　鼠标转向　Esc 释放鼠标</div>
-  <div id="attribution">© OpenStreetMap contributors · Three.js</div>
-  <button id="resetBtn" type="button">回到起点</button>
+  <div id="footer">云逛街体验版 · stylized Kinshicho inspired scene</div>
   <script type="module" src="./app.js"></script>
 </body>
 </html>
