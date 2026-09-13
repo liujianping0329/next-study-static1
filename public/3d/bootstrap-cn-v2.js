@@ -1,0 +1,1 @@
+const s=document.createElement('script');s.src='./app.js?v=cn-v2-20260913';document.body.appendChild(s);
