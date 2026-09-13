@@ -28,7 +28,9 @@ jobs:
               print('index is already plain HTML; nothing to unpack')
               sys.exit(0)
           try:
-              t=gzip.decompress(base64.b64decode(m.group(1))).decode('utf-8')
+              raw=m.group(1).strip()
+              raw += '=' * (-len(raw) % 4)
+              t=gzip.decompress(base64.b64decode(raw)).decode('utf-8')
           except Exception as e:
               raise SystemExit(f'unpack failed: {e}')
           # Main page must not need a second network request to render.
