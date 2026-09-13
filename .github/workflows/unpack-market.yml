@@ -1,4 +1,4 @@
-name: Unpack market HTML
+name: Normalize market HTML
 
 on:
   push:
@@ -8,100 +8,66 @@ permissions:
   contents: write
 
 jobs:
-  unpack:
-    if: ${{ !contains(github.event.head_commit.message, '[unpack-market]') }}
+  normalize:
+    if: ${{ !contains(github.event.head_commit.message, '[plain-market]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Build plain self-contained dashboard
+      - name: Build browser-safe plain HTML
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re, base64, gzip, datetime, zoneinfo, sys
-
-          market=Path('public/study/market')
-          index=market/'index.html'
-
-          def decode_wrapper(path):
+          import re,base64,gzip,datetime,zoneinfo
+          root=Path('public/study/market'); p=root/'index.html'
+          def plain(path):
               s=path.read_text(encoding='utf-8')
-              m=re.search(r"const b='([^']+)'", s)
-              if not m:
-                  if '<html' in s.lower() and 'DecompressionStream' not in s and not re.search(r'\bfetch\s*\(',s):
-                      return s
-                  raise ValueError('no embedded payload')
-              raw=m.group(1).strip()
-              raw += '=' * (-len(raw) % 4)
-              return gzip.decompress(base64.b64decode(raw, validate=False)).decode('utf-8')
-
-          # First try current index. If its embedded gzip is corrupted, fall back to
-          # the newest known snapshot and turn THAT into plain HTML. Never ship a
-          # browser-side decompression wrapper again.
-          try:
-              t=decode_wrapper(index)
-              source='current index'
+              m=re.search(r"const b='([^']+)'",s)
+              if not m:return s
+              raw=m.group(1).strip(); raw+='='*(-len(raw)%4)
+              return gzip.decompress(base64.b64decode(raw,validate=False)).decode('utf-8')
+          try:t=plain(p); source='index'
           except Exception as e:
-              print('current index decode failed:',repr(e))
-              snaps=sorted(market.glob('_snapshot*.html'),key=lambda p:p.stat().st_mtime,reverse=True)
-              t=None
-              errs=[]
-              for p in snaps:
-                  try:
-                      t=decode_wrapper(p); source=p.name; break
-                  except Exception as se:
-                      errs.append(f'{p.name}: {se}')
-              if t is None:
-                  raise SystemExit('no valid dashboard payload; '+' | '.join(errs))
+              print('index payload broken:',e); t=None
+              for q in sorted(root.glob('_snapshot*.html'),key=lambda x:x.stat().st_mtime,reverse=True):
+                  try:t=plain(q);source=q.name;break
+                  except Exception as se:print('snapshot rejected',q.name,se)
+              if t is None:raise SystemExit('no recoverable dashboard')
+          if re.search(r'\bfetch\s*\(|XMLHttpRequest\s*\(',t) or 'DecompressionStream' in t or 'atob(' in t:
+              raise SystemExit('browser-side loader/compression still present')
 
-          if re.search(r'\bfetch\s*\(|XMLHttpRequest\s*\(', t):
-              raise SystemExit('decoded dashboard contains runtime fetch/XHR; refusing release')
-          if 'DecompressionStream' in t or 'atob(' in t:
-              raise SystemExit('decoded dashboard still contains browser decompression wrapper')
+          # Mobile-approved hourly layout: 7 columns. Keep wind data for animation,
+          # but show speed inside weather text only when it is actually a high-wind row.
+          t=t.replace('<th>雨量</th><th>風速</th><th>UV</th>','<th>雨量</th><th>UV</th>')
+          t=t.replace('<td>${w.toFixed(1)} km/h</td><td>${fmt(uv)}</td>','<td>${fmt(uv)}</td>')
+          t=t.replace("${z}</div></td><td>${t.toFixed(1)}°</td>","${z}${w>32?' '+w.toFixed(0)+'km/h':''}</div></td><td>${t.toFixed(1)}°</td>")
 
-          mobile_css=r'''<style id="mobile-hourly-7col-fix">
-          @media(max-width:720px){
-            .mc{padding-left:4px!important;padding-right:4px!important}.card{border-radius:9px!important}.hd{padding:6px 7px!important}.p{font-size:13px!important}.sum{font-size:8px!important;max-width:52%!important}
-            .tw{overflow-x:hidden!important;width:100%!important}.tw table{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-spacing:0 3px!important}
-            .tw th,.tw td{padding:2px 0!important;overflow:hidden!important;text-overflow:clip!important;white-space:nowrap!important}.tw th{font-size:7.2px!important;letter-spacing:-.15px!important;height:24px!important}.tw td{font-size:9px!important;height:32px!important;line-height:1.12!important}
-            .tw th:nth-child(1),.tw td:nth-child(1){width:13%!important}.tw th:nth-child(2),.tw td:nth-child(2){width:19%!important}.tw th:nth-child(3),.tw td:nth-child(3){width:13%!important}.tw th:nth-child(4),.tw td:nth-child(4){width:16%!important}.tw th:nth-child(5),.tw td:nth-child(5){width:13%!important}.tw th:nth-child(6),.tw td:nth-child(6){width:14%!important}.tw th:nth-child(7),.tw td:nth-child(7){width:12%!important}
-            .t{font-size:9px!important;letter-spacing:-.2px!important}tr.now .t:after{font-size:5.8px!important;margin-left:1px!important;padding:1px 2px!important;vertical-align:1px!important}.wi{font-size:12px!important;line-height:11px!important;gap:1px!important;height:13px!important}.wx{font-size:6.2px!important;line-height:1.05!important;letter-spacing:-.1px!important;max-width:100%!important;overflow:hidden!important}.tp{font-size:9px!important}.mm{font-size:8.6px!important}.uv{width:14px!important;height:14px!important;font-size:7px!important}.windIcon{width:12px!important;height:8px!important}
-          }
-          @media(max-width:390px){.w{padding-left:3px!important;padding-right:3px!important}.mc{padding-left:3px!important;padding-right:3px!important}.hd{padding-left:6px!important;padding-right:6px!important}.tw th{font-size:6.7px!important;letter-spacing:-.25px!important}.tw td{font-size:8.5px!important}.t,.tp{font-size:8.5px!important}.wi{font-size:11px!important}.wx{font-size:5.8px!important}.mm{font-size:8px!important}.uv{width:13px!important;height:13px!important;font-size:6.5px!important}}
-          @media(max-width:360px){.tw th{font-size:6.3px!important}.tw td,.t,.tp{font-size:8px!important}.wx{font-size:5.4px!important}.wi{font-size:10.5px!important}.mm{font-size:7.6px!important}.uv{width:12px!important;height:12px!important;font-size:6px!important}}
+          css='''<style id="mobile-hourly-hw-7col-fix">
+          @media(max-width:720px){.hw{overflow-x:hidden!important;width:100%!important}.hw table{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-spacing:0 3px!important}.hw th,.hw td{padding:2px 0!important;overflow:hidden!important;white-space:nowrap!important;line-height:1.08!important}.hw th{font-size:6.8px!important;height:23px!important}.hw td{font-size:8.5px!important;height:34px!important}.hw th:nth-child(1),.hw td:nth-child(1){width:13%!important}.hw th:nth-child(2),.hw td:nth-child(2){width:21%!important}.hw th:nth-child(3),.hw td:nth-child(3){width:13%!important}.hw th:nth-child(4),.hw td:nth-child(4){width:15%!important}.hw th:nth-child(5),.hw td:nth-child(5){width:13%!important}.hw th:nth-child(6),.hw td:nth-child(6){width:13%!important}.hw th:nth-child(7),.hw td:nth-child(7){width:12%!important}.hw td:nth-child(2) div{font-size:5.8px!important;overflow:hidden!important;text-overflow:clip!important}tr.now td:first-child:after{font-size:5.6px!important;padding:1px 2px!important;margin-left:1px!important}.w{padding-left:3px!important;padding-right:3px!important}.b{padding-left:3px!important;padding-right:3px!important}}
+          @media(max-width:390px){.hw th{font-size:6.3px!important}.hw td{font-size:8px!important}.hw td:nth-child(2) div{font-size:5.3px!important}}
+          @media(max-width:360px){.hw th{font-size:6px!important}.hw td{font-size:7.6px!important}.hw td:nth-child(2) div{font-size:5px!important}}
           </style>'''
-          if 'mobile-hourly-7col-fix' not in t:
-              t=re.sub(r'</head>',mobile_css+'</head>',t,count=1,flags=re.I)
+          if 'mobile-hourly-hw-7col-fix' not in t:t=re.sub(r'</head>',css+'</head>',t,count=1,flags=re.I)
 
-          # Compact responsive release banner. It is intentionally pure HTML/CSS.
-          now=datetime.datetime.now(zoneinfo.ZoneInfo('Asia/Tokyo'))
-          stamp=now.strftime('%m/%d %H:%M JST')
-          banner_css=r'''<style id="release-recovery-style">#releaseRecovery{max-width:1000px;margin:7px auto 4px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;background:#f3f7fb;color:#334155;font:11px system-ui,-apple-system,sans-serif;display:flex;justify-content:space-between;gap:8px;box-sizing:border-box}#releaseRecovery b{font-size:12px}@media(max-width:720px){#releaseRecovery{margin:5px 4px;padding:7px 8px;display:block;line-height:1.45}#releaseRecovery span{display:block;font-size:9px;margin-top:2px}}</style>'''
-          if 'release-recovery-style' not in t:
-              t=re.sub(r'</head>',banner_css+'</head>',t,count=1,flags=re.I)
-          banner=f'<div id="releaseRecovery"><b>天氣・股市・匯率</b><span>{stamp}｜純 HTML 修復版</span></div>'
-          if 'releaseRecovery' not in t:
+          now=datetime.datetime.now(zoneinfo.ZoneInfo('Asia/Tokyo')); stamp=now.strftime('%m/%d %H:%M JST')
+          bcss='''<style id="release-mobile-banner">#releaseBanner{max-width:1000px;margin:6px auto 4px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;background:#f3f7fb;color:#334155;font:11px system-ui,-apple-system,sans-serif;display:flex;justify-content:space-between;gap:8px;box-sizing:border-box}#releaseBanner b{font-size:12px}@media(max-width:720px){#releaseBanner{margin:5px 4px;padding:7px 8px;display:block;line-height:1.4}#releaseBanner span{display:block;font-size:9px;margin-top:2px}}</style>'''
+          if 'release-mobile-banner' not in t:t=re.sub(r'</head>',bcss+'</head>',t,count=1,flags=re.I)
+          if 'id="releaseBanner"' not in t:
+              banner=f'<div id="releaseBanner"><b>天氣・股市・匯率</b><span>{stamp}｜手機單屏版</span></div>'
               t=re.sub(r'<body([^>]*)>',lambda m:m.group(0)+banner,t,count=1,flags=re.I)
 
-          # Final hard block: the actual published HTML must not include these.
-          if re.search(r'\bfetch\s*\(|XMLHttpRequest\s*\(',t) or 'DecompressionStream' in t or 'atob(' in t:
-              raise SystemExit('final plain HTML safety check failed')
-
-          today=now.strftime('%Y-%m-%d')
-          index.write_text(t,encoding='utf-8')
-          (market/f'{today}.html').write_text(t,encoding='utf-8')
-          print('built plain HTML from',source,'bytes',len(t.encode('utf-8')),'date',today)
+          if re.search(r'\bfetch\s*\(|XMLHttpRequest\s*\(',t) or 'DecompressionStream' in t or 'atob(' in t:raise SystemExit('final safety check failed')
+          day=now.strftime('%Y-%m-%d');p.write_text(t,encoding='utf-8');(root/f'{day}.html').write_text(t,encoding='utf-8')
+          print('plain source=',source,'bytes=',len(t.encode()))
           PY
-      - name: Commit plain HTML
+      - name: Commit normalized page
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add public/study/market/index.html public/study/market/$(TZ=Asia/Tokyo date +%F).html
-          if git diff --cached --quiet; then
-            echo 'No plain HTML changes needed.'
-            exit 0
-          fi
-          git commit -m 'market: [unpack-market] restore plain EdgeOne dashboard'
+          if git diff --cached --quiet; then echo 'No changes'; exit 0; fi
+          git commit -m 'market: [plain-market] normalize EdgeOne page'
           git push
