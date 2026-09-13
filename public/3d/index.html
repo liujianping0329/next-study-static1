@@ -2,36 +2,32 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kinshicho Street Arcade</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>锦糸町风 · 国产品牌云逛街</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <canvas id="game"></canvas>
-
-  <div id="hud">
-    <div class="logo">KINSHICHO STREET ARCADE</div>
-    <div id="zone">錦糸町駅前</div>
-    <div id="shopHint">左右移动，开始逛街</div>
+  <div class="hud left">
+    <div class="title">国产品牌云逛街</div>
+    <div id="zone">区域：站前广场</div>
+    <div id="shopHint">左右移动逛街，靠近店铺按 E 查看</div>
   </div>
-
-  <div id="controls">
-    <span>← → / A D 移动</span>
-    <span>↑ ↓ / W S 走位</span>
-    <span>Shift 跑步</span>
-    <span>E 查看店铺</span>
+  <div class="hud right">
+    <button id="themeBtn" type="button">切换到白天</button>
   </div>
-
-  <button id="themeBtn" type="button">切换白天</button>
-
-  <div id="shopPanel" class="hidden">
-    <button id="closeShop" type="button">×</button>
-    <div id="shopTag">SHOP</div>
-    <h2 id="shopTitle"></h2>
-    <p id="shopDesc"></p>
-    <div id="shopMeta"></div>
+  <div class="hud bottom">
+    <div>A/D 或 ←/→ 移动，W/S 微调站位，Shift 跑步，E 查看店铺</div>
   </div>
-
+  <div id="shopPanel" class="panel hidden">
+    <div class="panel-card">
+      <button id="closeShop" class="close" type="button">×</button>
+      <div id="shopTag" class="tag">品牌</div>
+      <h2 id="shopTitle">店铺</h2>
+      <p id="shopDesc">介绍</p>
+      <div id="shopMeta" class="meta"></div>
+    </div>
+  </div>
   <script src="./app.js"></script>
 </body>
 </html>
