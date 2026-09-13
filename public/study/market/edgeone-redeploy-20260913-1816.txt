@@ -1,0 +1,2 @@
+EdgeOne redeploy trigger 2026-09-13 18:16 JST
+Current market dashboard source is self-contained and must not runtime-fetch a snapshot wrapper.
