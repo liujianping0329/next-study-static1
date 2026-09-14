@@ -44,6 +44,13 @@ jobs:
           t=t.replace('<td>${w.toFixed(1)} km/h</td><td>${fmt(uv)}</td>','<td>${fmt(uv)}</td>')
           t=t.replace("${z}</div></td><td>${t.toFixed(1)}°</td>","${z}${w>32?' '+w.toFixed(0)+'km/h':''}</div></td><td>${t.toFixed(1)}°</td>")
 
+          # UV must always render as an icon/badge, never as a naked number.
+          uvcss='''<style id="uv-badge-rule">.uvb{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-width:28px;height:20px;padding:0 5px;border-radius:999px;font-size:11px;font-weight:800;background:#fef3c7;color:#a16207}.uvb.low{background:#dcfce7;color:#15803d}.uvb.mid{background:#fef3c7;color:#a16207}.uvb.high{background:#fee2e2;color:#b91c1c}.uvb small{font-size:8px;font-weight:900}@media(max-width:430px){.uvb{min-width:22px;height:18px;padding:0 3px;font-size:10px}.uvb small{font-size:7px}}</style>'''
+          if 'uv-badge-rule' not in t:t=re.sub(r'</head>',uvcss+'</head>',t,count=1,flags=re.I)
+          naked='<td>${fmt(uv)}</td>'
+          badge='<td><span class="uvb ${uv==null?\'low\':uv<=2?\'low\':uv<=5?\'mid\':\'high\'}">☀<small>${uv==null?\'—\':uv}</small></span></td>'
+          t=t.replace(naked,badge)
+
           css='''<style id="mobile-hourly-hw-7col-fix">
           @media(max-width:720px){.hw{overflow-x:hidden!important;width:100%!important}.hw table{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-spacing:0 3px!important}.hw th,.hw td{padding:2px 0!important;overflow:hidden!important;white-space:nowrap!important;line-height:1.08!important}.hw th{font-size:6.8px!important;height:23px!important}.hw td{font-size:8.5px!important;height:34px!important}.hw th:nth-child(1),.hw td:nth-child(1){width:13%!important}.hw th:nth-child(2),.hw td:nth-child(2){width:21%!important}.hw th:nth-child(3),.hw td:nth-child(3){width:13%!important}.hw th:nth-child(4),.hw td:nth-child(4){width:15%!important}.hw th:nth-child(5),.hw td:nth-child(5){width:13%!important}.hw th:nth-child(6),.hw td:nth-child(6){width:13%!important}.hw th:nth-child(7),.hw td:nth-child(7){width:12%!important}.hw td:nth-child(2) div{font-size:5.8px!important;overflow:hidden!important;text-overflow:clip!important}tr.now td:first-child:after{font-size:5.6px!important;padding:1px 2px!important;margin-left:1px!important}.w{padding-left:3px!important;padding-right:3px!important}.b{padding-left:3px!important;padding-right:3px!important}}
           @media(max-width:390px){.hw th{font-size:6.3px!important}.hw td{font-size:8px!important}.hw td:nth-child(2) div{font-size:5.3px!important}}
@@ -51,16 +58,20 @@ jobs:
           </style>'''
           if 'mobile-hourly-hw-7col-fix' not in t:t=re.sub(r'</head>',css+'</head>',t,count=1,flags=re.I)
 
-          now=datetime.datetime.now(zoneinfo.ZoneInfo('Asia/Tokyo')); stamp=now.strftime('%m/%d %H:%M JST')
+          now=datetime.datetime.now(zoneinfo.ZoneInfo('Asia/Tokyo')); stamp=now.strftime('%m/%d %H:%M JST'); updated=now.strftime('%Y-%m-%d %H:%M JST')
+          t=re.sub(r'"updated":"[^"]+"',f'"updated":"{updated}"',t,count=1)
           bcss='''<style id="release-mobile-banner">#releaseBanner{max-width:1000px;margin:6px auto 4px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;background:#f3f7fb;color:#334155;font:11px system-ui,-apple-system,sans-serif;display:flex;justify-content:space-between;gap:8px;box-sizing:border-box}#releaseBanner b{font-size:12px}@media(max-width:720px){#releaseBanner{margin:5px 4px;padding:7px 8px;display:block;line-height:1.4}#releaseBanner span{display:block;font-size:9px;margin-top:2px}}</style>'''
           if 'release-mobile-banner' not in t:t=re.sub(r'</head>',bcss+'</head>',t,count=1,flags=re.I)
           if 'id="releaseBanner"' not in t:
               banner=f'<div id="releaseBanner"><b>天氣・股市・匯率</b><span>{stamp}｜手機單屏版</span></div>'
               t=re.sub(r'<body([^>]*)>',lambda m:m.group(0)+banner,t,count=1,flags=re.I)
+          else:
+              t=re.sub(r'(<div id="releaseBanner"><b>天氣・股市・匯率</b><span>)[^<]*(</span></div>)',rf'\g<1>{stamp}｜手機單屏版\g<2>',t,count=1)
 
           if re.search(r'\bfetch\s*\(|XMLHttpRequest\s*\(',t) or 'DecompressionStream' in t or 'atob(' in t:raise SystemExit('final safety check failed')
+          if '<td>${fmt(uv)}</td>' in t:raise SystemExit('UV naked-number renderer still present')
           day=now.strftime('%Y-%m-%d');p.write_text(t,encoding='utf-8');(root/f'{day}.html').write_text(t,encoding='utf-8')
-          print('plain source=',source,'bytes=',len(t.encode()))
+          print('plain source=',source,'bytes=',len(t.encode()),'updated=',updated)
           PY
       - name: Commit normalized page
         shell: bash
@@ -69,5 +80,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add public/study/market/index.html public/study/market/$(TZ=Asia/Tokyo date +%F).html
           if git diff --cached --quiet; then echo 'No changes'; exit 0; fi
-          git commit -m 'market: [plain-market] normalize EdgeOne page'
+          git commit -m 'market: [plain-market] refresh plain page and UV badges'
           git push
