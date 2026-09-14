@@ -1,0 +1,7 @@
+2026-09-14 15:03 JST
+Fresh-source verification completed for this publication cycle.
+Weather: Tokyo/Sumida/Shibuya/Kuwana forecast rechecked; current hourly/daily values remain consistent with the 12:00 embedded forecast within source precision.
+US market: latest regular-session close remains 2026-09-11 (S&P 500 7656.98; QQQM latest regular close retained).
+Japan market: Nikkei 225 2026-09-14 session rechecked intraday.
+Taiwan market: no newer verified close found than 2026-09-11; retained latest verified close.
+FX: USD/JPY and TWD/JPY direction/level rechecked on 2026-09-14.
