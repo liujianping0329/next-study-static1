@@ -1,0 +1,179 @@
+name: Publish live market dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/study/market/.publish-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch live data and build plain HTML
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+          import urllib.request, urllib.parse, json, time, math, re, hashlib
+
+          JST=ZoneInfo('Asia/Tokyo')
+          now=datetime.now(JST)
+          root=Path('public/study/market')
+          index=root/'index.html'
+          html=index.read_text(encoding='utf-8')
+
+          def get_json(url, tries=4):
+              last=None
+              for n in range(tries):
+                  try:
+                      req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0','Accept':'application/json,text/plain,*/*'})
+                      with urllib.request.urlopen(req,timeout=30) as r:
+                          return json.loads(r.read().decode('utf-8'))
+                  except Exception as e:
+                      last=e; time.sleep(1.5*(n+1))
+              raise RuntimeError(f'GET failed: {url}: {last}')
+
+          def wtext(c):
+              c=int(c)
+              return {0:'晴',1:'大致晴朗',2:'多雲時晴',3:'陰',45:'霧',48:'霧',51:'毛毛雨',53:'毛毛雨',55:'較強毛毛雨',56:'凍毛毛雨',57:'凍毛毛雨',61:'小雨',63:'中雨',65:'大雨',66:'凍雨',67:'凍雨',71:'小雪',73:'中雪',75:'大雪',77:'雪粒',80:'陣雨',81:'陣雨',82:'強陣雨',85:'陣雪',86:'強陣雪',95:'雷雨',96:'雷雨伴冰雹',99:'強雷雨伴冰雹'}.get(c,'多雲')
+
+          locs=[('錦糸町（墨田區）',35.696,139.814),('渋谷',35.6595,139.7005),('桑名（三重縣桑名市）',35.062,136.683)]
+          weather={}
+          for name,lat,lon in locs:
+              q=urllib.parse.urlencode({
+                  'latitude':lat,'longitude':lon,
+                  'hourly':'temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,uv_index',
+                  'daily':'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,uv_index_max',
+                  'timezone':'Asia/Tokyo','forecast_days':7
+              })
+              o=get_json('https://api.open-meteo.com/v1/forecast?'+q)
+              H=o['hourly']; D=o['daily']; times=H['time']
+              today=now.strftime('%Y-%m-%d'); curh=now.hour
+              hourly=[]
+              for i,t in enumerate(times):
+                  if t[:10]!=today: continue
+                  h=int(t[11:13])
+                  if h<curh: continue
+                  temp=H['temperature_2m'][i]; hum=H['relative_humidity_2m'][i]; pop=H['precipitation_probability'][i]; pr=H['precipitation'][i]; wind=H['wind_speed_10m'][i]; uv=H['uv_index'][i]; desc=wtext(H['weather_code'][i])
+                  hourly.append([h, round(temp,1) if temp is not None else None, int(round(hum)) if hum is not None else None, int(round(pop)) if pop is not None else None, round(pr or 0,1), round(wind or 0,1), desc, round(uv,1) if uv is not None else None])
+              if not hourly:
+                  raise RuntimeError(f'no hourly rows for {name}')
+              hum_by_day={}
+              for i,t in enumerate(times):
+                  d=t[:10]; v=H['relative_humidity_2m'][i]
+                  if v is not None: hum_by_day.setdefault(d,[]).append(float(v))
+              daily=[]; wd='一二三四五六日'
+              for i,d in enumerate(D['time']):
+                  dd=datetime.strptime(d,'%Y-%m-%d').date()
+                  hv=hum_by_day.get(d,[])
+                  daily.append([dd.strftime('%m/%d'),wd[dd.weekday()],wtext(D['weather_code'][i]),round(D['temperature_2m_max'][i]),round(D['temperature_2m_min'][i]),int(round(D['precipitation_probability_max'][i] or 0)),int(round(D['wind_speed_10m_max'][i] or 0)),int(round(sum(hv)/len(hv))) if hv else None,round(D['uv_index_max'][i],1) if D['uv_index_max'][i] is not None else None])
+              weather[name]={'hourly':hourly,'daily':daily}
+
+          def yahoo_raw(sym):
+              esc=urllib.parse.quote(sym,safe='')
+              err=None
+              for host in ('query1.finance.yahoo.com','query2.finance.yahoo.com'):
+                  try:
+                      u=f'https://{host}/v8/finance/chart/{esc}?range=1y&interval=1d&includePrePost=false&events=div%2Csplits'
+                      j=get_json(u,3); r=j['chart']['result'][0]
+                      ts=r.get('timestamp') or []; closes=r['indicators']['quote'][0]['close']; meta=r.get('meta',{})
+                      tzname=meta.get('exchangeTimezoneName') or 'UTC'
+                      try: tz=ZoneInfo(tzname)
+                      except: tz=timezone.utc
+                      pts=[]
+                      for t,c in zip(ts,closes):
+                          if c is None or not math.isfinite(float(c)): continue
+                          pts.append((datetime.fromtimestamp(t,tz).date(),float(c)))
+                      if len(pts)<2: raise RuntimeError('not enough points')
+                      return pts
+                  except Exception as e: err=e
+              raise RuntimeError(f'Yahoo {sym}: {err}')
+
+          def series(name,sym):
+              pts=yahoo_raw(sym); lastd,last=pts[-1]; prev=pts[-2][1]
+              m=pts[-25:]
+              months={}
+              for d,v in pts: months[(d.year,d.month)]=(d,v)
+              y=list(months.values())[-13:]
+              return {'name':name,'last':round(last,4),'prev':round(prev,4),'asof':lastd.strftime('%m/%d'),'m':[[d.strftime('%m/%d'),round(v,4)] for d,v in m],'y':[[d.strftime('%m/%y'),round(v,4)] for d,v in y]}
+
+          stocks=[series('S&P 500','^GSPC'),series('QQQM','QQQM'),series('日經 225','^N225'),series('台灣加權','^TWII')]
+
+          usd=series('USD/JPY','JPY=X')
+          try: cny=series('CNY/JPY','CNYJPY=X')
+          except Exception:
+              a=yahoo_raw('JPY=X'); b=yahoo_raw('CNY=X'); mb={d:v for d,v in b}; cross=[(d,v/mb[d]) for d,v in a if d in mb and mb[d]]
+              def pack_cross(name,pts):
+                  ld,last=pts[-1]; prev=pts[-2][1]; months={}
+                  for d,v in pts: months[(d.year,d.month)]=(d,v)
+                  return {'name':name,'last':round(last,4),'prev':round(prev,4),'asof':ld.strftime('%m/%d'),'m':[[d.strftime('%m/%d'),round(v,4)] for d,v in pts[-25:]],'y':[[d.strftime('%m/%y'),round(v,4)] for d,v in list(months.values())[-13:]]}
+              cny=pack_cross('CNY/JPY',cross)
+          try: twd=series('TWD/JPY','TWDJPY=X')
+          except Exception:
+              a=yahoo_raw('JPY=X'); b=yahoo_raw('TWD=X'); mb={d:v for d,v in b}; cross=[(d,v/mb[d]) for d,v in a if d in mb and mb[d]]
+              ld,last=cross[-1]; prev=cross[-2][1]; months={}
+              for d,v in cross: months[(d.year,d.month)]=(d,v)
+              twd={'name':'TWD/JPY','last':round(last,4),'prev':round(prev,4),'asof':ld.strftime('%m/%d'),'m':[[d.strftime('%m/%d'),round(v,4)] for d,v in cross[-25:]],'y':[[d.strftime('%m/%y'),round(v,4)] for d,v in list(months.values())[-13:]]}
+          fx=[usd,cny,twd]
+
+          data={'updated':now.strftime('%Y-%m-%d %H:%M JST'),'w':weather,'s':stocks,'f':fx}
+          blob=json.dumps(data,ensure_ascii=False,separators=(',',':'))
+          html,n=re.subn(r'var D=.*?;\nconst J=', 'var D='+blob+';\nconst J=', html, count=1, flags=re.S)
+          if n!=1: raise RuntimeError('D payload replacement failed')
+          day=now.strftime('%Y-%m-%d')
+          html=re.sub(r'<title>\d{4}-\d{2}-\d{2}｜天氣・股市・匯率</title>',f'<title>{day}｜天氣・股市・匯率</title>',html,count=1)
+          html=re.sub(r'<h1>\d{4}-\d{2}-\d{2}｜天氣・股市・匯率</h1>',f'<h1>{day}｜天氣・股市・匯率</h1>',html,count=1)
+          stamp=now.strftime('%m/%d %H:%M JST')
+          html=re.sub(r'\d{2}/\d{2} \d{2}:\d{2} JST｜手機單屏版',stamp+'｜手機單屏版',html)
+          html=re.sub(r'\d{2}/\d{2} \d{2}:\d{2} JST｜純 HTML 修復版',stamp+'｜純 HTML',html)
+
+          # Hard blockers: plain self-contained page and 7-column hourly table.
+          bad=['DecompressionStream','atob(','XMLHttpRequest','fetch(_snapshot','fetch("_snapshot','fetch(\'_snapshot']
+          for x in bad:
+              if x in html: raise RuntimeError('forbidden loader token: '+x)
+          required=['@keyframes heat','@keyframes rainA','@keyframes rainHeavy','@keyframes flash','@keyframes seedFly','@keyframes snowfall','@keyframes blizzardFall']
+          for x in required:
+              if x not in html: raise RuntimeError('missing animation: '+x)
+          if '<th>時刻</th><th>天氣</th><th>氣溫</th><th>濕度</th><th>降雨率</th><th>雨量</th><th>UV</th>' not in html:
+              raise RuntimeError('hourly 7-column header missing')
+          if any(len(v['daily'])!=7 or len(v['hourly'])<1 for v in weather.values()): raise RuntimeError('weather completeness failed')
+          if len(stocks)!=4 or len(fx)!=3: raise RuntimeError('market completeness failed')
+
+          index.write_text(html,encoding='utf-8')
+          daily_path=root/f'{day}.html'; daily_path.write_text(html,encoding='utf-8')
+          if hashlib.sha256(index.read_bytes()).digest()!=hashlib.sha256(daily_path.read_bytes()).digest(): raise RuntimeError('index/daily mismatch')
+          print('published data time',data['updated'],'html bytes',len(html.encode('utf-8')))
+          PY
+
+      - name: JavaScript syntax check
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('public/study/market/index.html').read_text(encoding='utf-8')
+          js='\n'.join(re.findall(r'<script>(.*?)</script>',s,re.S))
+          Path('/tmp/market.js').write_text(js,encoding='utf-8')
+          PY
+          node --check /tmp/market.js
+
+      - name: Commit and trigger EdgeOne
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          DAY=$(TZ=Asia/Tokyo date +%F)
+          git add public/study/market/index.html public/study/market/$DAY.html
+          git commit -m "[plain-market] market: publish live $DAY"
+          git pull --rebase origin main
+          git push origin main
