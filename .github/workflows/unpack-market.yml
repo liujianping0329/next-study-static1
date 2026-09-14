@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   normalize:
-    if: ${{ !contains(github.event.head_commit.message, '[plain-market]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[plain-market]') && !contains(github.event.head_commit.message, 'market: trigger') && !contains(github.event.head_commit.message, '[market-refresh]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,13 +38,10 @@ jobs:
           if re.search(r'\bfetch\s*\(|XMLHttpRequest\s*\(',t) or 'DecompressionStream' in t or 'atob(' in t:
               raise SystemExit('browser-side loader/compression still present')
 
-          # Mobile-approved hourly layout: 7 columns. Keep wind data for animation,
-          # but show speed inside weather text only when it is actually a high-wind row.
           t=t.replace('<th>雨量</th><th>風速</th><th>UV</th>','<th>雨量</th><th>UV</th>')
           t=t.replace('<td>${w.toFixed(1)} km/h</td><td>${fmt(uv)}</td>','<td>${fmt(uv)}</td>')
           t=t.replace("${z}</div></td><td>${t.toFixed(1)}°</td>","${z}${w>32?' '+w.toFixed(0)+'km/h':''}</div></td><td>${t.toFixed(1)}°</td>")
 
-          # UV must always render as an icon/badge, never as a naked number.
           uvcss='''<style id="uv-badge-rule">.uvb{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-width:28px;height:20px;padding:0 5px;border-radius:999px;font-size:11px;font-weight:800;background:#fef3c7;color:#a16207}.uvb.low{background:#dcfce7;color:#15803d}.uvb.mid{background:#fef3c7;color:#a16207}.uvb.high{background:#fee2e2;color:#b91c1c}.uvb small{font-size:8px;font-weight:900}@media(max-width:430px){.uvb{min-width:22px;height:18px;padding:0 3px;font-size:10px}.uvb small{font-size:7px}}</style>'''
           if 'uv-badge-rule' not in t:t=re.sub(r'</head>',uvcss+'</head>',t,count=1,flags=re.I)
           naked='<td>${fmt(uv)}</td>'
