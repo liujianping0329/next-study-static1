@@ -65,7 +65,7 @@ jobs:
                   h=int(t[11:13])
                   if h<curh: continue
                   temp=H['temperature_2m'][i]; hum=H['relative_humidity_2m'][i]; pop=H['precipitation_probability'][i]; pr=H['precipitation'][i]; wind=H['wind_speed_10m'][i]; uv=H['uv_index'][i]; desc=wtext(H['weather_code'][i])
-                  hourly.append([h, round(temp,1) if temp is not None else None, int(round(hum)) if hum is not None else None, int(round(pop)) if pop is not None else None, round(pr or 0,1), round(wind or 0,1), desc, round(uv,1) if uv is not None else None])
+                  hourly.append([h, round(temp,1) if temp is not None else None, int(round(hum)) if hum is not None else None, int(round(pop)) if pop is not None else None, round(pr or 0,1), round(wind or 0,1), desc, round(uv,1) if uv is not None else None, t[:10]])
               if not hourly:
                   raise RuntimeError(f'no hourly rows for {name}')
               hum_by_day={}
@@ -126,7 +126,7 @@ jobs:
               twd={'name':'TWD/JPY','last':round(last,4),'prev':round(prev,4),'asof':ld.strftime('%m/%d'),'m':[[d.strftime('%m/%d'),round(v,4)] for d,v in cross[-25:]],'y':[[d.strftime('%m/%y'),round(v,4)] for d,v in list(months.values())[-13:]]}
           fx=[usd,cny,twd]
 
-          data={'updated':now.strftime('%Y-%m-%d %H:%M JST'),'w':weather,'s':stocks,'f':fx}
+          data={'date':now.strftime('%Y-%m-%d'),'updated':now.strftime('%Y-%m-%d %H:%M JST'),'w':weather,'s':stocks,'f':fx}
           blob=json.dumps(data,ensure_ascii=False,separators=(',',':'))
           html,n=re.subn(r'var D=.*?;\nconst J=', 'var D='+blob+';\nconst J=', html, count=1, flags=re.S)
           if n!=1: raise RuntimeError('D payload replacement failed')
@@ -137,7 +137,7 @@ jobs:
           html=re.sub(r'\d{2}/\d{2} \d{2}:\d{2} JST｜手機單屏版',stamp+'｜手機單屏版',html)
           html=re.sub(r'\d{2}/\d{2} \d{2}:\d{2} JST｜純 HTML 修復版',stamp+'｜純 HTML',html)
 
-          # Hard blockers: plain self-contained page and 7-column hourly table.
+          # Hard blockers: plain self-contained page, current-hour highlight and 7-column hourly table.
           bad=['DecompressionStream','atob(','XMLHttpRequest','fetch(_snapshot','fetch("_snapshot','fetch(\'_snapshot']
           for x in bad:
               if x in html: raise RuntimeError('forbidden loader token: '+x)
@@ -146,6 +146,11 @@ jobs:
               if x not in html: raise RuntimeError('missing animation: '+x)
           if '<th>時刻</th><th>天氣</th><th>氣溫</th><th>濕度</th><th>降雨率</th><th>雨量</th><th>UV</th>' not in html:
               raise RuntimeError('hourly 7-column header missing')
+          if "x.dataset.day===day" not in html or "classList.toggle('now'" not in html or "tr.now td:first-child:after" not in html:
+              raise RuntimeError('current-hour highlight logic missing')
+          for name,v in weather.items():
+              matches=[x for x in v['hourly'] if x[0]==curh and x[8]==today]
+              if len(matches)!=1: raise RuntimeError(f'current-hour row mismatch: {name}')
           if any(len(v['daily'])!=7 or len(v['hourly'])<1 for v in weather.values()): raise RuntimeError('weather completeness failed')
           if len(stocks)!=4 or len(fx)!=3: raise RuntimeError('market completeness failed')
 
