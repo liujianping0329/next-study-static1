@@ -22,7 +22,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          from datetime import datetime, timezone
+          from datetime import datetime, timezone, timedelta
           from zoneinfo import ZoneInfo
           import urllib.request, urllib.parse, json, time, math, re, hashlib
 
@@ -49,6 +49,9 @@ jobs:
 
           locs=[('錦糸町（墨田區）',35.696,139.814),('渋谷',35.6595,139.7005),('桑名（三重縣桑名市）',35.062,136.683)]
           weather={}
+          today=now.strftime('%Y-%m-%d')
+          tomorrow=(now.date()+timedelta(days=1)).isoformat()
+          curh=now.hour
           for name,lat,lon in locs:
               q=urllib.parse.urlencode({
                   'latitude':lat,'longitude':lon,
@@ -58,14 +61,13 @@ jobs:
               })
               o=get_json('https://api.open-meteo.com/v1/forecast?'+q)
               H=o['hourly']; D=o['daily']; times=H['time']
-              today=now.strftime('%Y-%m-%d'); curh=now.hour
               hourly=[]
               for i,t in enumerate(times):
-                  if t[:10]!=today: continue
-                  h=int(t[11:13])
-                  if h<curh: continue
+                  d=t[:10]; h=int(t[11:13])
+                  include=(d==today and h>=curh) or (now.hour>=18 and d==tomorrow)
+                  if not include: continue
                   temp=H['temperature_2m'][i]; hum=H['relative_humidity_2m'][i]; pop=H['precipitation_probability'][i]; pr=H['precipitation'][i]; wind=H['wind_speed_10m'][i]; uv=H['uv_index'][i]; desc=wtext(H['weather_code'][i])
-                  hourly.append([h, round(temp,1) if temp is not None else None, int(round(hum)) if hum is not None else None, int(round(pop)) if pop is not None else None, round(pr or 0,1), round(wind or 0,1), desc, round(uv,1) if uv is not None else None, t[:10]])
+                  hourly.append([h, round(temp,1) if temp is not None else None, int(round(hum)) if hum is not None else None, int(round(pop)) if pop is not None else None, round(pr or 0,1), round(wind or 0,1), desc, round(uv,1) if uv is not None else None, d])
               if not hourly:
                   raise RuntimeError(f'no hourly rows for {name}')
               hum_by_day={}
@@ -126,18 +128,18 @@ jobs:
               twd={'name':'TWD/JPY','last':round(last,4),'prev':round(prev,4),'asof':ld.strftime('%m/%d'),'m':[[d.strftime('%m/%d'),round(v,4)] for d,v in cross[-25:]],'y':[[d.strftime('%m/%y'),round(v,4)] for d,v in list(months.values())[-13:]]}
           fx=[usd,cny,twd]
 
-          data={'date':now.strftime('%Y-%m-%d'),'updated':now.strftime('%Y-%m-%d %H:%M JST'),'w':weather,'s':stocks,'f':fx}
+          data={'date':today,'updated':now.strftime('%Y-%m-%d %H:%M JST'),'w':weather,'s':stocks,'f':fx}
           blob=json.dumps(data,ensure_ascii=False,separators=(',',':'))
           html,n=re.subn(r'var D=.*?;\nconst J=', 'var D='+blob+';\nconst J=', html, count=1, flags=re.S)
           if n!=1: raise RuntimeError('D payload replacement failed')
-          day=now.strftime('%Y-%m-%d')
+          day=today
           html=re.sub(r'<title>\d{4}-\d{2}-\d{2}｜天氣・股市・匯率</title>',f'<title>{day}｜天氣・股市・匯率</title>',html,count=1)
           html=re.sub(r'<h1>\d{4}-\d{2}-\d{2}｜天氣・股市・匯率</h1>',f'<h1>{day}｜天氣・股市・匯率</h1>',html,count=1)
           stamp=now.strftime('%m/%d %H:%M JST')
           html=re.sub(r'\d{2}/\d{2} \d{2}:\d{2} JST｜手機單屏版',stamp+'｜手機單屏版',html)
           html=re.sub(r'\d{2}/\d{2} \d{2}:\d{2} JST｜純 HTML 修復版',stamp+'｜純 HTML',html)
 
-          # Hard blockers: plain self-contained page, current-hour highlight and 7-column hourly table.
+          # Hard blockers: self-contained page, exact legacy current-hour highlight and 7-column hourly table.
           bad=['DecompressionStream','atob(','XMLHttpRequest','fetch(_snapshot','fetch("_snapshot','fetch(\'_snapshot']
           for x in bad:
               if x in html: raise RuntimeError('forbidden loader token: '+x)
@@ -146,11 +148,24 @@ jobs:
               if x not in html: raise RuntimeError('missing animation: '+x)
           if '<th>時刻</th><th>天氣</th><th>氣溫</th><th>濕度</th><th>降雨率</th><th>雨量</th><th>UV</th>' not in html:
               raise RuntimeError('hourly 7-column header missing')
-          if "x.dataset.day===day" not in html or "classList.toggle('now'" not in html or "tr.now td:first-child:after" not in html:
-              raise RuntimeError('current-hour highlight logic missing')
+          legacy_highlight=[
+              '.bg.now{border:2px solid #64748b}',
+              '.bg.now.rainy{border-color:#3b82f6}',
+              '.bg.now.hot:not(.rainy){border-color:#f97316}',
+              "tr.now td:first-child:after{content:'現在';font-size:7px;background:#475569;color:#fff;border-radius:7px;padding:1px 3px;margin-left:2px}",
+              "x.classList.toggle('now',+x.dataset.h===h&&x.dataset.day===day)"
+          ]
+          for x in legacy_highlight:
+              if x not in html: raise RuntimeError('legacy current-hour highlight changed/missing: '+x)
           for name,v in weather.items():
-              matches=[x for x in v['hourly'] if x[0]==curh and x[8]==today]
-              if len(matches)!=1: raise RuntimeError(f'current-hour row mismatch: {name}')
+              matches=[x for x in v['hourly'] if len(x)>=9 and x[0]==curh and x[8]==today]
+              if len(matches)!=1: raise RuntimeError(f'current-hour row mismatch: {name}: {len(matches)}')
+          if now.hour>=18:
+              for name,v in weather.items():
+                  seq=[(x[8],x[0]) for x in v['hourly'] if len(x)>=9]
+                  a=(today,23); b=(tomorrow,0)
+                  if a not in seq or b not in seq or seq.index(b)!=seq.index(a)+1:
+                      raise RuntimeError(f'cross-midnight continuity failed: {name}')
           if any(len(v['daily'])!=7 or len(v['hourly'])<1 for v in weather.values()): raise RuntimeError('weather completeness failed')
           if len(stocks)!=4 or len(fx)!=3: raise RuntimeError('market completeness failed')
 
