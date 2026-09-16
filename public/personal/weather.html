@@ -14,18 +14,18 @@ button{font:inherit}
 #sky{background:linear-gradient(145deg,#0b1328,#192a4b);transition:background .7s ease}
 #sky:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.24))}
 .shell{position:relative;z-index:1;width:min(1200px,calc(100% - 24px));margin:auto;padding:28px 0 40px}
-.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}
-h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.04em}.sub{color:var(--muted);font-size:13px}
+.top{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:18px}
+h1{font-size:clamp(28px,4vw,42px);margin:0;letter-spacing:-.04em}
 .live{border:1px solid var(--line);background:rgba(8,18,38,.48);backdrop-filter:blur(14px);padding:9px 12px;border-radius:999px;font-size:12px;white-space:nowrap}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{border:1px solid var(--line);color:#d5e1f2;background:rgba(255,255,255,.06);padding:10px 15px;border-radius:14px;cursor:pointer}
 .tab.active{background:#f6f9ff;color:#14213b;border-color:#fff}
-.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;border:1px solid var(--line);border-radius:26px;padding:24px;background:linear-gradient(130deg,rgba(255,255,255,.14),rgba(255,255,255,.055));backdrop-filter:blur(17px)}
-.place{color:#cbd9ed;font-size:13px}.current{display:flex;align-items:center;gap:18px;margin:17px 0 6px}.big-icon{font-size:60px}.temp{font-size:76px;font-weight:760;line-height:.9;letter-spacing:-.06em}
-.condition{font-size:19px;font-weight:700}.desc{font-size:12px;color:var(--muted);margin-top:5px}
+.hero{display:grid;grid-template-columns:1.08fr .92fr;gap:22px;border:1px solid var(--line);border-radius:26px;padding:25px;background:linear-gradient(130deg,rgba(255,255,255,.14),rgba(255,255,255,.055));backdrop-filter:blur(17px)}
+.place{color:#cbd9ed;font-size:13px}.current{display:flex;align-items:center;gap:18px;margin:19px 0 9px}.big-icon{font-size:60px}.temp{font-size:76px;font-weight:760;line-height:.9;letter-spacing:-.06em}
+.condition{font-size:19px;font-weight:700}
 .metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-content:center}
-.metric{border:1px solid rgba(255,255,255,.09);background:rgba(4,14,31,.22);border-radius:17px;padding:14px}.metric .k{font-size:11px;color:#aab9cf;margin-bottom:6px}.metric .v{font-size:21px;font-weight:720}.metric .s{font-size:10px;color:#899bb4;margin-top:3px}
-.section-head{display:flex;justify-content:space-between;gap:10px;align-items:end;margin:25px 2px 11px}.section-head h2{font-size:18px;margin:0}.section-head span{font-size:11px;color:var(--muted)}
+.metric{display:flex;flex-direction:column;justify-content:center;min-height:78px;border:1px solid rgba(255,255,255,.09);background:rgba(4,14,31,.22);border-radius:17px;padding:15px 16px}.metric .k{font-size:11px;color:#aab9cf;margin-bottom:7px}.metric .v{font-size:22px;font-weight:720}
+.section-head{display:flex;align-items:end;margin:25px 2px 11px}.section-head h2{font-size:18px;margin:0}
 .hourly{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(140px,1fr);gap:10px;overflow-x:auto;padding:3px 2px 16px;scroll-snap-type:x proximity}
 .card{position:relative;scroll-snap-align:start;border:1px solid var(--line);background:rgba(255,255,255,.065);backdrop-filter:blur(13px);border-radius:20px;padding:13px;min-height:220px;transition:.2s}
 .card.active-now{border-color:rgba(184,255,221,.95);background:linear-gradient(180deg,rgba(184,255,221,.17),rgba(255,255,255,.07));box-shadow:0 0 0 1px rgba(184,255,221,.1)}
@@ -40,7 +40,7 @@ h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.04em}.sub{colo
 .flash{position:absolute;inset:0;background:#fff;opacity:0}.thunder .flash{animation:flash 5s infinite}@keyframes flash{0%,88%,92%,100%{opacity:0}89%{opacity:.58}90%{opacity:.08}91%{opacity:.38}}
 .snow{position:absolute;top:-30px;color:#fff;animation:snow linear infinite}@keyframes snow{to{transform:translate3d(-35px,110vh,0) rotate(260deg)}}
 .fog{position:absolute;left:-20vw;width:140vw;height:80px;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(240,247,255,.10),rgba(240,247,255,.2),rgba(240,247,255,.10),transparent);filter:blur(10px);animation:fog 12s ease-in-out infinite}@keyframes fog{50%{transform:translateX(10vw)}}
-@media(max-width:720px){.hero{grid-template-columns:1fr;padding:19px}.metrics{grid-template-columns:repeat(2,1fr)}.hourly{grid-auto-columns:136px}.shell{width:calc(100% - 18px);padding-top:20px}.top{display:block}.live{width:max-content;margin-top:10px}.temp{font-size:64px}.big-icon{font-size:51px}.sun{width:90px;height:90px;right:4%}}
+@media(max-width:720px){.hero{grid-template-columns:1fr;padding:20px;gap:17px}.metrics{grid-template-columns:repeat(2,1fr)}.metric{min-height:72px;padding:13px 14px}.hourly{grid-auto-columns:136px}.shell{width:calc(100% - 18px);padding-top:20px}.top{display:flex;align-items:center}.live{width:max-content;margin-top:0}.temp{font-size:64px}.big-icon{font-size:51px}.sun{width:90px;height:90px;right:4%}}
 </style>
 </head>
 <body>
@@ -48,7 +48,7 @@ h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.04em}.sub{colo
 <div id="fx"><div class="cloud c1"></div><div class="cloud c2"></div><div class="sun"></div><div class="heat"></div><div class="flash"></div><div id="particles"></div></div>
 <main class="shell">
   <div class="top">
-    <div><h1>逐時天氣</h1><div class="sub" id="generated"></div></div>
+    <div><h1>逐時天氣</h1></div>
     <div class="live" id="clock">JST --:--</div>
   </div>
   <div class="tabs" id="tabs"></div>
@@ -57,18 +57,16 @@ h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.04em}.sub{colo
       <div class="place" id="place"></div>
       <div class="current"><div class="big-icon" id="bigIcon"></div><div class="temp"><span id="temp"></span>°</div></div>
       <div class="condition" id="condition"></div>
-      <div class="desc" id="desc"></div>
     </div>
     <div class="metrics">
-      <div class="metric"><div class="k">濕度</div><div class="v" id="humidity"></div><div class="s">相對濕度</div></div>
-      <div class="metric"><div class="k">降雨機率</div><div class="v" id="pop"></div><div class="s">該時段預報</div></div>
-      <div class="metric"><div class="k">UV 強度</div><div class="v" id="uv"></div><div class="s">UV index</div></div>
-      <div class="metric"><div class="k">風速</div><div class="v" id="wind"></div><div class="s">僅供動畫判斷亦可隱藏</div></div>
+      <div class="metric"><div class="k">濕度</div><div class="v" id="humidity"></div></div>
+      <div class="metric"><div class="k">降雨機率</div><div class="v" id="pop"></div></div>
+      <div class="metric"><div class="k">UV 強度</div><div class="v" id="uv"></div></div>
+      <div class="metric"><div class="k">風速</div><div class="v" id="wind"></div></div>
     </div>
   </section>
-  <div class="section-head"><h2>每小時預報</h2><span>按使用者目前時間自動高亮</span></div>
+  <div class="section-head"><h2>每小時預報</h2></div>
   <div class="hourly" id="hourly"></div>
-  <div class="note">页面本身不请求 API。定时任务只需要生成并覆盖同目录的 weather.js；weather.html 可长期固定不变。</div>
 </main>
 <script>
 function initWeatherPage(){
@@ -156,12 +154,10 @@ function initWeatherPage(){
     const cur=currentFor(loc);
     if(!cur) return;
     renderTabs();
-    $("#generated").textContent=`资料生成：${fmt.format(new Date(data.generatedAt))} · ${data.source||"weather"}`;
     $("#place").textContent=`⌖ ${loc.name} · ${loc.area||""}`;
     $("#bigIcon").textContent=cur.icon||"🌤️";
     $("#temp").textContent=Math.round(cur.temp);
     $("#condition").textContent=cur.label||cur.type;
-    $("#desc").textContent=`当前采用 ${fmt.format(new Date(cur.time))} 时段预报 · ${cur.temp>=32?"高温效果 ON":"一般温度"}${cur.windKph>=35?" · 强风效果 ON":""}`;
     $("#humidity").textContent=cur.humidity+"%";
     $("#pop").textContent=cur.precipProbability+"%";
     $("#uv").textContent=Number(cur.uv).toFixed(1);
@@ -195,20 +191,15 @@ function initWeatherPage(){
   setInterval(tick,30000);
 }
 
-function showWeatherLoadError(message){
-  document.body.innerHTML = `<div style="padding:30px;color:white;font:16px system-ui;background:#091121;min-height:100vh">${message}</div>`;
+function showWeatherLoadError(){
+  document.body.innerHTML='<div style="padding:30px;color:white">weather.js 数据不存在或格式错误。</div>';
 }
-
 function loadWeatherData(){
-  const script=document.createElement("script");
-  script.src="./weather.js?ts="+Date.now();
-  script.async=true;
-  script.onload=()=>{
-    if(window.WEATHER_DATA && Array.isArray(window.WEATHER_DATA.locations) && window.WEATHER_DATA.locations.length) initWeatherPage();
-    else showWeatherLoadError("weather.js 已载入，但 WEATHER_DATA 格式错误。");
-  };
-  script.onerror=()=>showWeatherLoadError("weather.js 载入失败，请稍后重新整理页面。");
-  document.head.appendChild(script);
+  const s=document.createElement("script");
+  s.src="./weather.js?ts="+Date.now();
+  s.onload=()=>window.WEATHER_DATA?initWeatherPage():showWeatherLoadError();
+  s.onerror=showWeatherLoadError;
+  document.head.appendChild(s);
 }
 loadWeatherData();
 </script>
