@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>通知 · Personal Dashboard</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}body{min-height:100vh;background:radial-gradient(circle at 15% 10%,#4a261c 0,transparent 30%),radial-gradient(circle at 85% 80%,#2d1c46 0,transparent 34%),linear-gradient(145deg,#090f1b,#111827 55%,#17111d);color:#fff;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}.wrap{width:min(920px,100%);margin:0 auto}.back{display:inline-flex;align-items:center;gap:6px;color:#c6cedd;text-decoration:none;font-size:14px;margin:2px 0 18px}.head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;margin-bottom:20px}.eyebrow{font-size:11px;letter-spacing:.16em;color:#d7997f;font-weight:800;text-transform:uppercase;margin-bottom:6px}h1{margin:0;font-size:clamp(29px,7vw,43px);letter-spacing:-.04em}.updated{font-size:12px;color:#8f9aae;text-align:right}.panel{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.055);box-shadow:0 18px 55px rgba(0,0,0,.24);border-radius:25px;padding:20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}.panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}.panel-title{display:flex;gap:12px;align-items:center}.icon{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,#b64d2d,#e37a48);font-size:23px}.name{font-weight:800;font-size:20px}.source{font-size:12px;color:#909caf;margin-top:3px}.count{font-size:12px;padding:6px 9px;border-radius:999px;background:rgba(69,211,154,.12);color:#78e5b8;border:1px solid rgba(120,229,184,.18);white-space:nowrap}.codes{display:grid;gap:11px}.code-card{position:relative;border-radius:18px;background:rgba(7,12,22,.63);border:1px solid rgba(255,255,255,.08);padding:15px 15px 14px}.code-card.expired{opacity:.48}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.code{font:800 16px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.035em;overflow-wrap:anywhere}.copy{border:0;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;padding:8px 10px;font-weight:700;cursor:pointer}.copy:active{transform:scale(.96)}.reward{margin-top:10px;color:#d9deea;font-size:13px;line-height:1.55}.meta{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:10px;color:#8f9aae;font-size:11px}.active{color:#72e2b3}.expire{color:#f7b083}.redeem{margin-top:16px;padding:13px 15px;border-radius:16px;background:rgba(227,122,72,.09);border:1px solid rgba(227,122,72,.15);font-size:12px;line-height:1.6;color:#d4dae5}.empty{text-align:center;padding:28px 10px;color:#96a0b2}.section-note{margin:16px 2px 0;color:#7f899b;font-size:11px;line-height:1.6}@media(max-width:620px){.head{align-items:flex-start;flex-direction:column}.updated{text-align:left}.panel{padding:16px;border-radius:21px}.panel-head{align-items:center}.code{font-size:15px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <a class="back" href="./index.html">← 返回生活信息导航</a>
+    <header class="head"><div><div class="eyebrow">Notifications</div><h1>通知</h1></div><div class="updated" id="updated">正在读取数据…</div></header>
+    <section id="content"></section>
+  </main>
+  <script src="./notifications-data.js"></script>
+  <script>
+    const data=window.PERSONAL_NOTIFICATIONS||{groups:[]};
+    const fmt=d=>new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Tokyo',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(d));
+    const now=Date.now();
+    document.getElementById('updated').textContent=data.updatedAt?'最后更新 '+fmt(data.updatedAt)+' JST':'暂无更新时间';
+    const root=document.getElementById('content');
+    if(!data.groups?.length){root.innerHTML='<div class="panel empty">目前没有通知</div>'}
+    else root.innerHTML=data.groups.map(g=>{
+      const items=(g.items||[]).slice().sort((a,b)=>new Date(b.publishedAt)-new Date(a.publishedAt));
+      const active=items.filter(x=>!x.expiresAt||new Date(x.expiresAt).getTime()>now).length;
+      return `<article class="panel"><div class="panel-head"><div class="panel-title"><div class="icon">${g.icon||'🔔'}</div><div><div class="name">${g.title}</div><div class="source">来源 ${g.source||'-'}</div></div></div><div class="count">${active} 个可用</div></div><div class="codes">${items.length?items.map(x=>{const expired=x.expiresAt&&new Date(x.expiresAt).getTime()<=now;return `<div class="code-card ${expired?'expired':''}"><div class="row"><div class="code">${x.code}</div><button class="copy" data-code="${x.code}">${expired?'已过期':'复制'}</button></div><div class="reward">${x.reward||'奖励内容待确认'}</div><div class="meta"><span class="${expired?'':'active'}">${expired?'已过期':'● 可兑换'}</span>${x.expiresAt?`<span class="expire">截止 ${fmt(x.expiresAt)} JST</span>`:''}${x.publishedAt?`<span>发布 ${x.publishedAt}</span>`:''}</div></div>`}).join(''):'<div class="empty">目前没有兑换码</div>'}</div>${g.redeemPath?`<div class="redeem">兑换方式：${g.redeemPath}</div>`:''}</article>`
+    }).join('');
+    document.addEventListener('click',async e=>{const btn=e.target.closest('.copy');if(!btn||btn.textContent==='已过期')return;try{await navigator.clipboard.writeText(btn.dataset.code);const old=btn.textContent;btn.textContent='已复制';setTimeout(()=>btn.textContent=old,1200)}catch{btn.textContent='复制失败'}});
+  </script>
+</body>
+</html>
