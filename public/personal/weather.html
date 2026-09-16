@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>逐時天氣</title>
-<script src="./weather.js"></script>
 <style>
 :root{--line:rgba(255,255,255,.13);--text:#f6f8ff;--muted:#aebbd1;--now:#b8ffdd}
 *{box-sizing:border-box}
@@ -72,7 +71,7 @@ h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.04em}.sub{colo
   <div class="note">页面本身不请求 API。定时任务只需要生成并覆盖同目录的 weather.js；weather.html 可长期固定不变。</div>
 </main>
 <script>
-(() => {
+function initWeatherPage(){
   const data = window.WEATHER_DATA;
   if (!data || !Array.isArray(data.locations) || !data.locations.length) {
     document.body.innerHTML = '<div style="padding:30px;color:white">weather.js 数据不存在或格式错误。</div>';
@@ -194,7 +193,24 @@ h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.04em}.sub{colo
   renderAll();
   tick();
   setInterval(tick,30000);
-})();
+}
+
+function showWeatherLoadError(message){
+  document.body.innerHTML = `<div style="padding:30px;color:white;font:16px system-ui;background:#091121;min-height:100vh">${message}</div>`;
+}
+
+function loadWeatherData(){
+  const script=document.createElement("script");
+  script.src="./weather.js?ts="+Date.now();
+  script.async=true;
+  script.onload=()=>{
+    if(window.WEATHER_DATA && Array.isArray(window.WEATHER_DATA.locations) && window.WEATHER_DATA.locations.length) initWeatherPage();
+    else showWeatherLoadError("weather.js 已载入，但 WEATHER_DATA 格式错误。");
+  };
+  script.onerror=()=>showWeatherLoadError("weather.js 载入失败，请稍后重新整理页面。");
+  document.head.appendChild(script);
+}
+loadWeatherData();
 </script>
 </body>
 </html>
