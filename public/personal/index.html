@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Personal Dashboard</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+    body{min-height:100vh;min-height:100dvh;background:radial-gradient(circle at 15% 10%,#24385f 0,transparent 34%),radial-gradient(circle at 85% 85%,#162d4f 0,transparent 32%),linear-gradient(145deg,#07111f,#0f172a 50%,#101827);color:#fff;display:flex;align-items:center;justify-content:center;padding:max(22px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
+    .wrap{width:min(920px,100%)}
+    .head{margin-bottom:22px;padding:0 4px}
+    .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#91a4c2;font-weight:700;margin-bottom:7px}
+    h1{margin:0;font-size:clamp(28px,6vw,42px);line-height:1.08;letter-spacing:-.035em}
+    .sub{margin:9px 0 0;color:#8fa0ba;font-size:14px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .card{position:relative;min-height:190px;border-radius:27px;padding:24px;text-decoration:none;color:#fff;overflow:hidden;border:1px solid rgba(255,255,255,.11);box-shadow:0 18px 50px rgba(0,0,0,.24);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate}
+    .card:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.015) 45%,rgba(0,0,0,.08));z-index:-2}
+    .card:after{content:"";position:absolute;width:160px;height:160px;border-radius:50%;right:-50px;bottom:-65px;background:rgba(255,255,255,.12);filter:blur(1px);z-index:-1}
+    .card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.25);box-shadow:0 22px 60px rgba(0,0,0,.32)}
+    .card:active{transform:scale(.985)}
+    .weather{background:linear-gradient(145deg,#1769aa,#348fe0)}
+    .finance{background:linear-gradient(145deg,#0b755f,#18a77f)}
+    .future{background:linear-gradient(145deg,#6046c7,#8a63e8)}
+    .notice{background:linear-gradient(145deg,#b64d2d,#e37a48)}
+    .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .icon{width:48px;height:48px;border-radius:15px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:25px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+    .arrow{font-size:23px;opacity:.8;line-height:1}
+    .title{font-size:25px;font-weight:800;letter-spacing:-.02em;margin-bottom:5px}
+    .desc{font-size:13px;color:rgba(255,255,255,.75)}
+    .coming{position:absolute;right:18px;top:18px;padding:5px 9px;border-radius:999px;background:rgba(7,17,31,.22);font-size:10px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.8)}
+    @media(max-width:620px){body{align-items:flex-start}.wrap{padding-top:4vh}.head{margin-bottom:18px}.grid{grid-template-columns:1fr;gap:12px}.card{min-height:132px;border-radius:23px;padding:19px 20px}.icon{width:42px;height:42px;border-radius:13px;font-size:22px}.title{font-size:22px}.card:after{width:130px;height:130px}}
+    @media(prefers-reduced-motion:reduce){.card{transition:none}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="head">
+      <div class="eyebrow">Personal</div>
+      <h1>生活信息导航</h1>
+      <p class="sub">天气、市场与通知集中入口</p>
+    </header>
+
+    <section class="grid" aria-label="导航">
+      <a class="card weather" href="./weather.html">
+        <div class="top"><div class="icon">☀️</div><div class="arrow">↗</div></div>
+        <div><div class="title">天气</div><div class="desc">当前天气与逐小时变化</div></div>
+      </a>
+
+      <a class="card finance" href="./finance.html">
+        <span class="coming">COMING</span>
+        <div class="top"><div class="icon">📈</div><div class="arrow">↗</div></div>
+        <div><div class="title">金融</div><div class="desc">市场走势与每日数据</div></div>
+      </a>
+
+      <a class="card future" href="./future-weather.html">
+        <span class="coming">COMING</span>
+        <div class="top"><div class="icon">🌦️</div><div class="arrow">↗</div></div>
+        <div><div class="title">未来天气</div><div class="desc">未来时段与天气趋势</div></div>
+      </a>
+
+      <a class="card notice" href="./notifications.html">
+        <span class="coming">COMING</span>
+        <div class="top"><div class="icon">🔔</div><div class="arrow">↗</div></div>
+        <div><div class="title">通知</div><div class="desc">提醒、推送与重要消息</div></div>
+      </a>
+    </section>
+  </main>
+</body>
+</html>
