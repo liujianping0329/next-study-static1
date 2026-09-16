@@ -1,438 +1,200 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>天氣動畫展示版</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>逐時天氣</title>
+<script src="./weather.js"></script>
 <style>
-:root{
---bg1:#0b1328;--bg2:#1b2d50;--panel:rgba(255,255,255,.10);--panel2:rgba(255,255,255,.06);
---line:rgba(255,255,255,.12);--text:#f6f8ff;--muted:#aebbd1;--accent:#8fd3ff;
---now:#b8ffdd;--shadow:0 24px 70px rgba(0,0,0,.28)
-}
+:root{--line:rgba(255,255,255,.13);--text:#f6f8ff;--muted:#aebbd1;--now:#b8ffdd}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#091121;color:var(--text);font-family:Inter,"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
 html{background:#091121}
-body{overflow-x:hidden;position:relative;isolation:isolate;background:transparent}
+body{margin:0;min-height:100%;overflow-x:hidden;position:relative;isolation:isolate;background:transparent;color:var(--text);font-family:Inter,"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
 button{font:inherit}
-.sky{position:fixed;inset:0;z-index:0;pointer-events:none;background:
-radial-gradient(circle at 18% 10%,rgba(72,139,218,.42),transparent 33%),
-radial-gradient(circle at 84% 24%,rgba(77,112,177,.28),transparent 30%),
-linear-gradient(145deg,var(--bg1),var(--bg2));transition:background .8s ease}
-.sky::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.20))}
-.fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.layer{position:absolute;inset:0}
-.sun-core{position:absolute;right:10%;top:8%;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,#fff7b2 0 30%,#ffd56f 42%,rgba(255,213,111,.20) 68%,transparent 74%);opacity:0}
-.sun-rays{position:absolute;right:5%;top:3%;width:220px;height:220px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,214,111,.22) 0deg 7deg,transparent 7deg 18deg);filter:blur(1px);animation:spin 16s linear infinite;opacity:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.cloud{position:absolute;width:280px;height:70px;border-radius:80px;background:rgba(220,233,249,.10);filter:blur(1px);animation:cloudMove 28s linear infinite}
-.cloud::before,.cloud::after{content:"";position:absolute;border-radius:50%;background:inherit}
-.cloud::before{width:110px;height:110px;left:55px;top:-50px}.cloud::after{width:150px;height:150px;right:35px;top:-78px}
-.cloud.c1{top:12%;left:-330px}.cloud.c2{top:27%;left:-480px;animation-delay:-11s;transform:scale(.7)}.cloud.c3{top:18%;left:-680px;animation-delay:-6s;transform:scale(.9)}
-@keyframes cloudMove{to{left:115vw}}
-.rain-drop{position:absolute;top:-70px;width:1.6px;height:58px;border-radius:50%;background:linear-gradient(transparent,rgba(189,224,255,.94));transform:rotate(12deg);animation:rain linear infinite}
-@keyframes rain{to{transform:translate3d(-80px,115vh,0) rotate(12deg)}}
-.wind-line{position:absolute;left:-28vw;width:26vw;height:2px;border-radius:50%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);animation:wind 1.6s linear infinite}
-@keyframes wind{to{transform:translateX(150vw)}}
-.heat-wave{position:absolute;inset:-15%;opacity:0;background:repeating-radial-gradient(ellipse at 50% 110%,rgba(255,183,93,.20) 0 2px,transparent 3px 18px);filter:blur(5px);animation:heat 2.2s ease-in-out infinite}
-@keyframes heat{0%,100%{transform:translateY(8px) scale(1.02);opacity:.14}50%{transform:translateY(-7px) scale(1.06);opacity:.34}}
-.flash{position:absolute;inset:0;background:white;opacity:0}
-.snowflake{position:absolute;top:-30px;color:rgba(255,255,255,.95);font-size:14px;animation:snow linear infinite}
-@keyframes snow{to{transform:translate3d(-40px,112vh,0) rotate(300deg)}}
-.fog-band{position:absolute;left:-20vw;width:140vw;height:84px;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(236,244,255,.09),rgba(236,244,255,.18),rgba(236,244,255,.09),transparent);filter:blur(10px);animation:fog 12s ease-in-out infinite}
-@keyframes fog{0%,100%{transform:translateX(0)}50%{transform:translateX(10vw)}}
-.drizzle-dot{position:absolute;top:-20px;width:2px;height:16px;border-radius:2px;background:rgba(190,224,255,.65);animation:drizzle linear infinite}
-@keyframes drizzle{to{transform:translate3d(-40px,108vh,0)}}
-.fx.sunny .sun-core,.fx.sunny .sun-rays{opacity:1}
-.fx.partly .sun-core,.fx.partly .sun-rays{opacity:1}
-.fx.wind .cloud{animation-duration:8s}
-.fx.heat .heat-wave{opacity:1}
-.fx.thunder .flash{animation:flash 5s infinite}
-@keyframes flash{0%,88%,92%,100%{opacity:0}89%{opacity:.64}90%{opacity:.10}91%{opacity:.42}}
-.shell{position:relative;z-index:1;width:min(1240px,calc(100% - 28px));margin:0 auto;padding:34px 0 48px}
-.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:22px}
-.brand h1{font-size:clamp(26px,4vw,42px);margin:0 0 7px;letter-spacing:-.03em}
-.brand p{margin:0;color:var(--muted);font-size:14px}
-.live{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(8,18,38,.44);backdrop-filter:blur(16px);font-size:13px;color:#dce9fa;white-space:nowrap}
-.dot{width:8px;height:8px;border-radius:50%;background:#7fffc2;box-shadow:0 0 0 5px rgba(127,255,194,.10);animation:pulse 1.8s infinite}
-@keyframes pulse{50%{box-shadow:0 0 0 10px rgba(127,255,194,0)}}
-.tabs{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}
-.tab{border:1px solid var(--line);background:rgba(255,255,255,.06);color:#cbd7ea;padding:10px 16px;border-radius:14px;cursor:pointer;transition:.2s}
-.tab:hover{transform:translateY(-1px);background:rgba(255,255,255,.10)}
-.tab.active{background:#f4f8ff;color:#14213b;border-color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.15)}
-.hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1.1fr .9fr;gap:18px;border:1px solid var(--line);border-radius:28px;padding:26px;background:linear-gradient(130deg,rgba(255,255,255,.14),rgba(255,255,255,.055));backdrop-filter:blur(18px);box-shadow:var(--shadow)}
-.hero::after{content:"";position:absolute;width:420px;height:420px;border-radius:50%;right:-180px;top:-230px;background:radial-gradient(circle,rgba(162,215,255,.18),transparent 65%);pointer-events:none}
-.place{display:flex;gap:10px;align-items:center;color:#cfe1f7;font-size:14px}
-.current-row{display:flex;align-items:center;gap:18px;margin:18px 0 8px}
-.big-icon{font-size:62px;filter:drop-shadow(0 10px 20px rgba(0,0,0,.18))}
-.temp{font-size:clamp(56px,9vw,86px);font-weight:750;line-height:.85;letter-spacing:-.07em}
-.condition{font-size:19px;font-weight:650;margin-top:13px}
-.summary{color:var(--muted);font-size:13px;margin-top:5px}
-.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-content:center}
-.metric{background:rgba(5,15,32,.23);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:15px}
-.metric .k{font-size:12px;color:#aab9cf;margin-bottom:7px}.metric .v{font-size:22px;font-weight:720}.metric .sub{font-size:11px;color:#8fa1bb;margin-top:3px}
-.uv-bar{height:5px;background:rgba(255,255,255,.09);border-radius:99px;margin-top:9px;overflow:hidden}.uv-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#87e6b4,#f2d56f,#ff9d64);width:var(--uvw)}
-.section-head{display:flex;justify-content:space-between;align-items:end;margin:28px 2px 12px}
-.section-head h2{margin:0;font-size:19px}.section-head span{font-size:12px;color:var(--muted)}
-.hourly{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(142px,1fr);gap:11px;overflow-x:auto;padding:4px 3px 17px;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
-.card{scroll-snap-align:start;position:relative;min-height:226px;border:1px solid var(--line);border-radius:21px;padding:14px;background:rgba(255,255,255,.065);backdrop-filter:blur(14px);transition:.25s}
-.card:hover{transform:translateY(-3px);background:rgba(255,255,255,.09)}
-.card.is-now{border-color:rgba(184,255,221,.9);background:linear-gradient(180deg,rgba(184,255,221,.16),rgba(255,255,255,.07));box-shadow:0 0 0 1px rgba(184,255,221,.12),0 12px 35px rgba(0,0,0,.18)}
-.now-badge{position:absolute;right:10px;top:10px;font-size:10px;font-weight:750;color:#10221b;background:var(--now);padding:4px 7px;border-radius:999px;display:none}.is-now .now-badge{display:block}
-.hour{font-size:13px;color:#cbd7e9;font-weight:700}.weather-icon{font-size:33px;margin:17px 0 7px}.card-temp{font-size:28px;font-weight:760;letter-spacing:-.04em}.card-condition{font-size:12px;color:#c8d6ea;margin:3px 0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mini{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:5px 0;border-top:1px solid rgba(255,255,255,.07);color:#9fb0c9}.mini b{font-size:12px;color:#ecf3ff;font-weight:650}
-.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}
-.legend-item{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:16px;padding:14px}
-.legend-item h3{margin:0 0 7px;font-size:15px}
-.legend-item p{margin:0;color:var(--muted);font-size:12px;line-height:1.55}
-.chipline{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
-.chip{font-size:11px;color:#adc0d9;padding:6px 9px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
-.source{margin-top:16px;color:#788aa5;font-size:11px;line-height:1.6}
-@media(max-width:760px){
-.shell{width:min(100% - 20px,1240px);padding-top:22px}.hero{grid-template-columns:1fr;padding:20px}
-.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.metric{padding:11px}.metric .v{font-size:18px}.metric .sub{display:none}
-.hourly{grid-auto-columns:137px}.legend{grid-template-columns:1fr}
-}
-@media(max-width:560px){
-.topbar{display:block}.live{margin-top:12px;width:max-content}.brand h1{font-size:31px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
-.sky,.fx{transform:translateZ(0);backface-visibility:hidden}
-.rain-drop{height:44px}
-.sun-core{width:96px;height:96px;right:5%;top:7%}
-.sun-rays{width:180px;height:180px;right:-2%;top:2%}
-}
-@media(prefers-reduced-motion:reduce){
-html{scroll-behavior:auto}
-.tab,.card{transition:none}
-.sun-rays{animation-duration:28s}
-.cloud{animation-duration:42s}
-.fx.wind .cloud{animation-duration:14s}
-.rain-drop{animation-duration:1.5s!important}
-.wind-line{animation-duration:2.5s!important}
-.snowflake{animation-duration:8s!important}
-.fog-band{animation-duration:18s!important}
-.heat-wave{animation-duration:4s!important}
-.fx.thunder .flash{animation-duration:8s}
-}
+#sky,#fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;transform:translateZ(0);backface-visibility:hidden}
+#sky{background:linear-gradient(145deg,#0b1328,#192a4b);transition:background .7s ease}
+#sky:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,.24))}
+.shell{position:relative;z-index:1;width:min(1200px,calc(100% - 24px));margin:auto;padding:28px 0 40px}
+.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}
+h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.04em}.sub{color:var(--muted);font-size:13px}
+.live{border:1px solid var(--line);background:rgba(8,18,38,.48);backdrop-filter:blur(14px);padding:9px 12px;border-radius:999px;font-size:12px;white-space:nowrap}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{border:1px solid var(--line);color:#d5e1f2;background:rgba(255,255,255,.06);padding:10px 15px;border-radius:14px;cursor:pointer}
+.tab.active{background:#f6f9ff;color:#14213b;border-color:#fff}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;border:1px solid var(--line);border-radius:26px;padding:24px;background:linear-gradient(130deg,rgba(255,255,255,.14),rgba(255,255,255,.055));backdrop-filter:blur(17px)}
+.place{color:#cbd9ed;font-size:13px}.current{display:flex;align-items:center;gap:18px;margin:17px 0 6px}.big-icon{font-size:60px}.temp{font-size:76px;font-weight:760;line-height:.9;letter-spacing:-.06em}
+.condition{font-size:19px;font-weight:700}.desc{font-size:12px;color:var(--muted);margin-top:5px}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-content:center}
+.metric{border:1px solid rgba(255,255,255,.09);background:rgba(4,14,31,.22);border-radius:17px;padding:14px}.metric .k{font-size:11px;color:#aab9cf;margin-bottom:6px}.metric .v{font-size:21px;font-weight:720}.metric .s{font-size:10px;color:#899bb4;margin-top:3px}
+.section-head{display:flex;justify-content:space-between;gap:10px;align-items:end;margin:25px 2px 11px}.section-head h2{font-size:18px;margin:0}.section-head span{font-size:11px;color:var(--muted)}
+.hourly{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(140px,1fr);gap:10px;overflow-x:auto;padding:3px 2px 16px;scroll-snap-type:x proximity}
+.card{position:relative;scroll-snap-align:start;border:1px solid var(--line);background:rgba(255,255,255,.065);backdrop-filter:blur(13px);border-radius:20px;padding:13px;min-height:220px;transition:.2s}
+.card.active-now{border-color:rgba(184,255,221,.95);background:linear-gradient(180deg,rgba(184,255,221,.17),rgba(255,255,255,.07));box-shadow:0 0 0 1px rgba(184,255,221,.1)}
+.badge{display:none;position:absolute;right:9px;top:9px;background:var(--now);color:#11241c;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:800}.active-now .badge{display:block}
+.hour{font-size:12px;font-weight:700;color:#cbd7e9}.ico{font-size:31px;margin:17px 0 6px}.ct{font-size:27px;font-weight:760}.cc{font-size:11px;color:#c8d6ea;margin:3px 0 13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini{display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,.07);padding:5px 0;font-size:10px;color:#9fb0c9}.mini b{color:#edf4ff;font-size:11px}
+.note{margin-top:14px;color:#7e91ad;font-size:10px;line-height:1.55}
+.cloud{position:absolute;width:270px;height:66px;border-radius:80px;background:rgba(222,235,250,.11);animation:cloud 28s linear infinite}.cloud:before,.cloud:after{content:"";position:absolute;border-radius:50%;background:inherit}.cloud:before{width:105px;height:105px;left:52px;top:-46px}.cloud:after{width:145px;height:145px;right:34px;top:-74px}.c1{top:14%;left:-330px}.c2{top:29%;left:-500px;transform:scale(.7);animation-delay:-12s}@keyframes cloud{to{left:115vw}}
+.sun{position:absolute;right:8%;top:7%;width:112px;height:112px;border-radius:50%;background:radial-gradient(circle,#fff8b8 0 31%,#ffd66d 44%,rgba(255,213,105,.18) 68%,transparent 74%);opacity:0}
+.rain{position:absolute;top:-65px;width:1.5px;height:52px;background:linear-gradient(transparent,rgba(194,225,255,.92));transform:rotate(12deg);animation:rain .95s linear infinite}@keyframes rain{to{transform:translate3d(-75px,115vh,0) rotate(12deg)}}
+.wind{position:absolute;left:-30vw;width:27vw;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:wind 1.5s linear infinite}@keyframes wind{to{transform:translateX(150vw)}}
+.heat{position:absolute;inset:-15%;opacity:0;background:repeating-radial-gradient(ellipse at 50% 110%,rgba(255,183,93,.20) 0 2px,transparent 3px 18px);filter:blur(5px);animation:heat 2.3s ease-in-out infinite}@keyframes heat{0%,100%{transform:translateY(8px) scale(1.02);opacity:.13}50%{transform:translateY(-7px) scale(1.06);opacity:.34}}
+.flash{position:absolute;inset:0;background:#fff;opacity:0}.thunder .flash{animation:flash 5s infinite}@keyframes flash{0%,88%,92%,100%{opacity:0}89%{opacity:.58}90%{opacity:.08}91%{opacity:.38}}
+.snow{position:absolute;top:-30px;color:#fff;animation:snow linear infinite}@keyframes snow{to{transform:translate3d(-35px,110vh,0) rotate(260deg)}}
+.fog{position:absolute;left:-20vw;width:140vw;height:80px;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(240,247,255,.10),rgba(240,247,255,.2),rgba(240,247,255,.10),transparent);filter:blur(10px);animation:fog 12s ease-in-out infinite}@keyframes fog{50%{transform:translateX(10vw)}}
+@media(max-width:720px){.hero{grid-template-columns:1fr;padding:19px}.metrics{grid-template-columns:repeat(2,1fr)}.hourly{grid-auto-columns:136px}.shell{width:calc(100% - 18px);padding-top:20px}.top{display:block}.live{width:max-content;margin-top:10px}.temp{font-size:64px}.big-icon{font-size:51px}.sun{width:90px;height:90px;right:4%}}
 </style>
 </head>
 <body>
-<div class="sky" id="sky"></div>
-<div class="fx" id="fx">
-<div class="layer">
-<div class="sun-rays"></div>
-<div class="sun-core"></div>
-<div class="cloud c1"></div>
-<div class="cloud c2"></div>
-<div class="cloud c3"></div>
-<div class="heat-wave"></div>
-<div class="flash"></div>
-</div>
-<div class="layer" id="particleLayer"></div>
-<div class="layer" id="fogLayer"></div>
-</div>
+<div id="sky"></div>
+<div id="fx"><div class="cloud c1"></div><div class="cloud c2"></div><div class="sun"></div><div class="heat"></div><div class="flash"></div><div id="particles"></div></div>
 <main class="shell">
-<div class="topbar">
-<div class="brand">
-<h1>天氣動畫展示版</h1>
-<p>同樣風格下，以假資料展示各種天氣效果與逐時頁面互動</p>
-</div>
-<div class="live"><span class="dot"></span><span id="clock">JST --:--</span></div>
-</div>
-<div class="tabs" id="tabs"></div>
-<section class="hero">
-<div>
-<div class="place">⌖ <span id="place"></span></div>
-<div class="current-row">
-<div class="big-icon" id="currentIcon"></div>
-<div class="temp"><span id="currentTemp"></span><small style="font-size:.45em;letter-spacing:0">°</small></div>
-</div>
-<div class="condition" id="currentCondition"></div>
-<div class="summary" id="currentSummary"></div>
-</div>
-<div class="metrics">
-<div class="metric"><div class="k">濕度</div><div class="v" id="humidity"></div><div class="sub">相對濕度</div></div>
-<div class="metric"><div class="k">降雨機率</div><div class="v" id="precip"></div><div class="sub">未來 1 小時</div></div>
-<div class="metric"><div class="k">UV 強度</div><div class="v" id="uv"></div><div class="uv-bar"><i id="uvBar"></i></div></div>
-<div class="metric"><div class="k">動畫效果</div><div class="v" id="effectName"></div><div class="sub" id="effectDesc"></div></div>
-</div>
-</section>
-<div class="section-head">
-<h2>每小時預報</h2>
-<span>目前時段會自動高亮</span>
-</div>
-<div class="hourly" id="hourly"></div>
-<div class="section-head" style="margin-top:24px">
-<h2>效果說明</h2>
-<span>目前展示的是假資料範例</span>
-</div>
-<div class="legend" id="legend"></div>
-<div class="source">
-這是靜態 HTML 展示版，目的是確認同一套 UI 在不同天氣下的動畫表現方式。之後若接 MSN 或其他來源，只要把資料結構換掉即可。
-</div>
+  <div class="top">
+    <div><h1>逐時天氣</h1><div class="sub" id="generated"></div></div>
+    <div class="live" id="clock">JST --:--</div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <section class="hero">
+    <div>
+      <div class="place" id="place"></div>
+      <div class="current"><div class="big-icon" id="bigIcon"></div><div class="temp"><span id="temp"></span>°</div></div>
+      <div class="condition" id="condition"></div>
+      <div class="desc" id="desc"></div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="k">濕度</div><div class="v" id="humidity"></div><div class="s">相對濕度</div></div>
+      <div class="metric"><div class="k">降雨機率</div><div class="v" id="pop"></div><div class="s">該時段預報</div></div>
+      <div class="metric"><div class="k">UV 強度</div><div class="v" id="uv"></div><div class="s">UV index</div></div>
+      <div class="metric"><div class="k">風速</div><div class="v" id="wind"></div><div class="s">僅供動畫判斷亦可隱藏</div></div>
+    </div>
+  </section>
+  <div class="section-head"><h2>每小時預報</h2><span>按使用者目前時間自動高亮</span></div>
+  <div class="hourly" id="hourly"></div>
+  <div class="note">页面本身不请求 API。定时任务只需要生成并覆盖同目录的 weather.js；weather.html 可长期固定不变。</div>
 </main>
 <script>
-const scenarios = {
-sunny:{
-name:"晴天",
-place:"展示城市 A · 晴朗場景",
-sky:"linear-gradient(145deg,#0a2654,#2f79c5)",
-icon:"☀️", effect:"sunny", effectTitle:"晴天光暈", effectDesc:"太陽光暈＋緩慢旋轉的光線，背景明亮偏藍。",
-legend:"適合呈現穩定好天氣。畫面主體為太陽、淡雲、偏亮天空。",
-hours:[
-{h:9,c:"晴朗",icon:"☀️",t:28,hum:52,pop:0,uv:8,wind:3},
-{h:10,c:"晴朗",icon:"☀️",t:30,hum:49,pop:0,uv:9,wind:3},
-{h:11,c:"晴朗",icon:"☀️",t:31,hum:47,pop:0,uv:10,wind:4},
-{h:12,c:"晴朗",icon:"☀️",t:32,hum:45,pop:0,uv:10,wind:4},
-{h:13,c:"晴朗",icon:"☀️",t:33,hum:43,pop:0,uv:10,wind:4},
-{h:14,c:"晴朗",icon:"☀️",t:33,hum:44,pop:0,uv:9,wind:4},
-{h:15,c:"晴朗",icon:"☀️",t:32,hum:46,pop:0,uv:8,wind:3},
-{h:16,c:"晴朗",icon:"☀️",t:31,hum:48,pop:0,uv:6,wind:3}
-]},
-partly:{
-name:"多雲時晴",
-place:"展示城市 B · 雲層變化場景",
-sky:"linear-gradient(145deg,#132342,#55759d)",
-icon:"⛅", effect:"partly", effectTitle:"雲間日照", effectDesc:"太陽半露出，雲層主導畫面，速度較平穩。",
-legend:"同時保留太陽與雲，適合過渡性天氣。",
-hours:[
-{h:9,c:"多雲時晴",icon:"⛅",t:26,hum:58,pop:10,uv:6,wind:3},
-{h:10,c:"多雲時晴",icon:"⛅",t:27,hum:56,pop:10,uv:6,wind:3},
-{h:11,c:"多雲",icon:"⛅",t:28,hum:55,pop:15,uv:5,wind:4},
-{h:12,c:"多雲",icon:"⛅",t:29,hum:54,pop:20,uv:5,wind:4},
-{h:13,c:"多雲時晴",icon:"⛅",t:29,hum:53,pop:20,uv:5,wind:4},
-{h:14,c:"多雲",icon:"⛅",t:28,hum:57,pop:25,uv:4,wind:4},
-{h:15,c:"多雲",icon:"⛅",t:28,hum:58,pop:25,uv:3,wind:4},
-{h:16,c:"多雲時晴",icon:"⛅",t:27,hum:60,pop:15,uv:2,wind:3}
-]},
-rain:{
-name:"雨天",
-place:"展示城市 C · 降雨場景",
-sky:"linear-gradient(145deg,#0b1731,#314666)",
-icon:"🌧️", effect:"rain", effectTitle:"雨滴效果", effectDesc:"持續雨絲自上而下，背景偏暗，雲層較厚。",
-legend:"適合一般降雨。若只是小雨，也可把雨絲變稀疏、改成細滴。",
-hours:[
-{h:9,c:"小雨",icon:"🌦️",t:24,hum:83,pop:65,uv:2,wind:4},
-{h:10,c:"雨",icon:"🌧️",t:23,hum:86,pop:80,uv:1,wind:4},
-{h:11,c:"雨",icon:"🌧️",t:23,hum:88,pop:90,uv:1,wind:4},
-{h:12,c:"雨",icon:"🌧️",t:22,hum:91,pop:95,uv:0,wind:5},
-{h:13,c:"雨",icon:"🌧️",t:22,hum:92,pop:95,uv:0,wind:5},
-{h:14,c:"雨",icon:"🌧️",t:22,hum:92,pop:90,uv:0,wind:5},
-{h:15,c:"小雨",icon:"🌦️",t:23,hum:89,pop:70,uv:0,wind:4},
-{h:16,c:"小雨",icon:"🌦️",t:23,hum:86,pop:55,uv:0,wind:3}
-]},
-wind:{
-name:"大風",
-place:"展示城市 D · 強風場景",
-sky:"linear-gradient(145deg,#10213f,#385a85)",
-icon:"💨", effect:"wind", effectTitle:"強風流線", effectDesc:"橫向風線快速劃過，雲移動速度加快。",
-legend:"風不是單靠圖示，而是用『風線』和『雲飄動速度』去強化體感。",
-hours:[
-{h:9,c:"有風",icon:"💨",t:25,hum:62,pop:10,uv:5,wind:10},
-{h:10,c:"強風",icon:"💨",t:26,hum:60,pop:10,uv:6,wind:12},
-{h:11,c:"強風",icon:"💨",t:27,hum:58,pop:10,uv:7,wind:13},
-{h:12,c:"強風",icon:"💨",t:28,hum:56,pop:10,uv:7,wind:14},
-{h:13,c:"強風",icon:"💨",t:28,hum:55,pop:10,uv:6,wind:14},
-{h:14,c:"有風",icon:"💨",t:27,hum:56,pop:10,uv:5,wind:11},
-{h:15,c:"有風",icon:"💨",t:26,hum:58,pop:10,uv:4,wind:10},
-{h:16,c:"微風",icon:"🌤️",t:26,hum:60,pop:5,uv:3,wind:8}
-]},
-heat:{
-name:"高溫",
-place:"展示城市 E · 炎熱場景",
-sky:"linear-gradient(145deg,#2b1530,#c96c31)",
-icon:"🔥", effect:"heat", effectTitle:"熱浪扭曲", effectDesc:"底部向上湧動的熱浪層，配合偏橘色背景。",
-legend:"高溫可不一定是晴天，但當溫度 ≥ 32°C 時，用熱浪去強化酷熱感最直觀。",
-hours:[
-{h:9,c:"炎熱",icon:"☀️",t:31,hum:61,pop:0,uv:8,wind:2},
-{h:10,c:"炎熱",icon:"☀️",t:32,hum:58,pop:0,uv:9,wind:2},
-{h:11,c:"酷熱",icon:"🔥",t:34,hum:55,pop:0,uv:10,wind:2},
-{h:12,c:"酷熱",icon:"🔥",t:35,hum:53,pop:0,uv:10,wind:3},
-{h:13,c:"酷熱",icon:"🔥",t:36,hum:50,pop:0,uv:10,wind:3},
-{h:14,c:"酷熱",icon:"🔥",t:36,hum:49,pop:0,uv:9,wind:3},
-{h:15,c:"炎熱",icon:"☀️",t:34,hum:53,pop:0,uv:8,wind:3},
-{h:16,c:"炎熱",icon:"☀️",t:33,hum:56,pop:0,uv:6,wind:3}
-]},
-thunder:{
-name:"雷雨",
-place:"展示城市 F · 對流場景",
-sky:"linear-gradient(145deg,#0b1222,#26243f)",
-icon:"⛈️", effect:"thunder", effectTitle:"雷雨閃電", effectDesc:"在雨滴基礎上，追加不規則閃電白光。",
-legend:"雷雨比普通雨更有警示性，因此用『整頁閃白』去模擬雷光最有效。",
-hours:[
-{h:9,c:"雷陣雨",icon:"⛈️",t:27,hum:78,pop:70,uv:2,wind:6},
-{h:10,c:"雷雨",icon:"⛈️",t:26,hum:82,pop:85,uv:1,wind:7},
-{h:11,c:"雷雨",icon:"⛈️",t:25,hum:86,pop:95,uv:0,wind:8},
-{h:12,c:"雷雨",icon:"⛈️",t:25,hum:88,pop:100,uv:0,wind:8},
-{h:13,c:"雷陣雨",icon:"⛈️",t:24,hum:89,pop:95,uv:0,wind:7},
-{h:14,c:"雷陣雨",icon:"⛈️",t:24,hum:88,pop:85,uv:0,wind:6},
-{h:15,c:"雨",icon:"🌧️",t:24,hum:86,pop:80,uv:0,wind:5},
-{h:16,c:"小雨",icon:"🌦️",t:25,hum:82,pop:60,uv:1,wind:4}
-]},
-snow:{
-name:"雪天",
-place:"展示城市 G · 降雪場景",
-sky:"linear-gradient(145deg,#15243d,#5b789f)",
-icon:"❄️", effect:"snow", effectTitle:"飄雪效果", effectDesc:"白色雪花緩慢下降，畫面安靜偏冷色。",
-legend:"雪的節奏要比雨慢很多，顆粒較大，整體氛圍更安靜。",
-hours:[
-{h:9,c:"小雪",icon:"🌨️",t:1,hum:78,pop:55,uv:1,wind:2},
-{h:10,c:"小雪",icon:"🌨️",t:1,hum:80,pop:60,uv:1,wind:2},
-{h:11,c:"雪",icon:"❄️",t:0,hum:82,pop:70,uv:1,wind:3},
-{h:12,c:"雪",icon:"❄️",t:0,hum:84,pop:80,uv:1,wind:3},
-{h:13,c:"雪",icon:"❄️",t:-1,hum:86,pop:85,uv:0,wind:3},
-{h:14,c:"雪",icon:"❄️",t:-1,hum:88,pop:80,uv:0,wind:3},
-{h:15,c:"小雪",icon:"🌨️",t:0,hum:86,pop:70,uv:0,wind:2},
-{h:16,c:"陰",icon:"☁️",t:1,hum:84,pop:40,uv:0,wind:2}
-]},
-fog:{
-name:"霧天",
-place:"展示城市 H · 濃霧場景",
-sky:"linear-gradient(145deg,#1a2333,#6b788d)",
-icon:"🌫️", effect:"fog", effectTitle:"低霧飄帶", effectDesc:"多層半透明霧帶緩慢飄動，降低畫面對比。",
-legend:"霧不靠粒子，而是用低透明度長條霧帶去營造能見度下降感。",
-hours:[
-{h:9,c:"有霧",icon:"🌫️",t:18,hum:94,pop:5,uv:1,wind:1},
-{h:10,c:"濃霧",icon:"🌫️",t:19,hum:95,pop:5,uv:1,wind:1},
-{h:11,c:"濃霧",icon:"🌫️",t:20,hum:93,pop:5,uv:2,wind:1},
-{h:12,c:"有霧",icon:"🌫️",t:21,hum:90,pop:5,uv:2,wind:2},
-{h:13,c:"薄霧",icon:"🌫️",t:22,hum:87,pop:5,uv:3,wind:2},
-{h:14,c:"薄霧",icon:"🌫️",t:22,hum:85,pop:5,uv:3,wind:2},
-{h:15,c:"陰",icon:"☁️",t:23,hum:82,pop:5,uv:3,wind:2},
-{h:16,c:"陰",icon:"☁️",t:23,hum:80,pop:5,uv:2,wind:2}
-]}
-};
-let active = "sunny";
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-const tabs=$("#tabs"), hourly=$("#hourly"), fx=$("#fx"), sky=$("#sky"), particle=$("#particleLayer"), fog=$("#fogLayer"), legend=$("#legend");
-Object.entries(scenarios).forEach(([key,v])=>{
-const b=document.createElement("button");
-b.className="tab";
-b.dataset.key=key;
-b.textContent=v.name;
-b.onclick=()=>{active=key;render()};
-tabs.appendChild(b);
-const item=document.createElement("div");
-item.className="legend-item";
-item.innerHTML=`<h3>${v.icon} ${v.name}</h3><p>${v.legend}</p><div class="chipline">
-<span class="chip">${v.effectTitle}</span>
-<span class="chip">示意場景</span>
-<span class="chip">假資料</span>
-</div>`;
-legend.appendChild(item);
-});
-function tokyoNow(){
-const parts = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
-const get=t=>parts.find(x=>x.type===t)?.value||"00";
-return {hour:Number(get("hour")),minute:get("minute")};
-}
-function nearestHour(hours,currentHour){
-const exact=hours.find(x=>x.h===currentHour);
-if(exact) return exact;
-return hours.reduce((a,b)=>Math.abs(b.h-currentHour)<Math.abs(a.h-currentHour)?b:a);
-}
-function clearFX(){
-fx.className="fx";
-particle.innerHTML="";
-fog.innerHTML="";
-}
-function mobileScale(count){
-return window.matchMedia("(max-width: 560px)").matches ? Math.max(18,Math.round(count*.48)) : count;
-}
-function addRain(count=70,thin=false){
-count=mobileScale(count);
-for(let i=0;i<count;i++){
-const d=document.createElement("i");
-d.className=thin?"drizzle-dot":"rain-drop";
-d.style.left=(Math.random()*110)+"vw";
-d.style.animationDuration=(thin?1.3:0.8)+(Math.random()*(thin?0.9:0.6))+"s";
-d.style.animationDelay=(-Math.random()*2)+"s";
-d.style.opacity=.3+Math.random()*.6;
-particle.appendChild(d);
-}
-}
-function addWind(count=18){
-count=mobileScale(count);
-for(let i=0;i<count;i++){
-const w=document.createElement("i");
-w.className="wind-line";
-w.style.top=(8+Math.random()*80)+"%";
-w.style.animationDelay=(-Math.random()*1.8)+"s";
-w.style.animationDuration=(0.8+Math.random()*1.1)+"s";
-particle.appendChild(w);
-}
-}
-function addSnow(count=55){
-count=mobileScale(count);
-const chars=["✦","✧","❄","❅","✻"];
-for(let i=0;i<count;i++){
-const s=document.createElement("i");
-s.className="snowflake";
-s.textContent=chars[Math.floor(Math.random()*chars.length)];
-s.style.left=(Math.random()*110)+"vw";
-s.style.animationDuration=(4.8+Math.random()*5.5)+"s";
-s.style.animationDelay=(-Math.random()*6)+"s";
-s.style.opacity=.35+Math.random()*.6;
-s.style.fontSize=(10+Math.random()*12)+"px";
-particle.appendChild(s);
-}
-}
-function addFog(count=4){
-for(let i=0;i<count;i++){
-const b=document.createElement("i");
-b.className="fog-band";
-b.style.top=(18+i*15 + Math.random()*4)+"%";
-b.style.animationDuration=(9+Math.random()*8)+"s";
-b.style.animationDelay=(-Math.random()*6)+"s";
-b.style.opacity=.5+Math.random()*.4;
-fog.appendChild(b);
-}
-}
-function setFX(scene){
-clearFX();
-fx.classList.add(scene.effect);
-sky.style.background = scene.sky;
-if(scene.effect==="rain") addRain(75,false);
-if(scene.effect==="wind"){ addWind(20); }
-if(scene.effect==="heat"){ fx.classList.add("sunny"); }
-if(scene.effect==="thunder"){ addRain(85,false); }
-if(scene.effect==="snow"){ addSnow(60); }
-if(scene.effect==="fog"){ addFog(5); }
-if(scene.effect==="partly"){ }
-if(scene.effect==="sunny"){ }
-}
-function render(){
-$$(".tab").forEach(b=>b.classList.toggle("active",b.dataset.key===active));
-const scene=scenarios[active], now=tokyoNow(), current=nearestHour(scene.hours,now.hour);
-$("#place").textContent=scene.place;
-$("#currentIcon").textContent=current.icon;
-$("#currentTemp").textContent=current.t;
-$("#currentCondition").textContent=current.c;
-$("#currentSummary").textContent=`${current.h}:00 的示意預報 · ${scene.effectTitle}`;
-$("#humidity").textContent=current.hum+"%";
-$("#precip").textContent=current.pop+"%";
-$("#uv").textContent=current.uv.toFixed(1);
-$("#uvBar").style.setProperty("--uvw",Math.min(100,current.uv/11*100)+"%");
-$("#effectName").textContent=scene.effectTitle;
-$("#effectDesc").textContent=scene.effectDesc;
-hourly.innerHTML = scene.hours.map(x=>`<article class="card ${x.h===now.hour?"is-now":""}">
-<div class="now-badge">現在</div>
-<div class="hour">${String(x.h).padStart(2,"0")}:00</div>
-<div class="weather-icon">${x.icon}</div>
-<div class="card-temp">${x.t}°</div>
-<div class="card-condition">${x.c}</div>
-<div class="mini"><span>濕度</span><b>${x.hum}%</b></div>
-<div class="mini"><span>降雨</span><b>${x.pop}%</b></div>
-<div class="mini"><span>UV</span><b>${x.uv.toFixed(1)}</b></div>
-</article>`).join("");
-setFX(scene);
-setTimeout(()=>hourly.querySelector(".is-now")?.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"}),120);
-}
-function tick(){
-const n=tokyoNow();
-$("#clock").textContent=`JST ${String(n.hour).padStart(2,"0")}:${n.minute}`;
-}
-tick(); setInterval(tick,15000); render();
+(() => {
+  const data = window.WEATHER_DATA;
+  if (!data || !Array.isArray(data.locations) || !data.locations.length) {
+    document.body.innerHTML = '<div style="padding:30px;color:white">weather.js 数据不存在或格式错误。</div>';
+    return;
+  }
+
+  let activeId = data.locations[0].id;
+  let renderedHourKey = "";
+  const $ = s => document.querySelector(s);
+  const tabs = $("#tabs"), hourly = $("#hourly"), fx = $("#fx"), sky = $("#sky"), particles = $("#particles");
+
+  const fmt = new Intl.DateTimeFormat("ja-JP", { timeZone:data.timezone || "Asia/Tokyo", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23" });
+  const hourFmt = new Intl.DateTimeFormat("ja-JP", { timeZone:data.timezone || "Asia/Tokyo", hour:"2-digit", hourCycle:"h23" });
+
+  function nowMs(){ return Date.now(); }
+  function currentFor(loc){
+    const now = nowMs();
+    const hs = loc.hours || [];
+    let cur = hs.find((x,i)=>{
+      const start = new Date(x.time).getTime();
+      const end = i < hs.length-1 ? new Date(hs[i+1].time).getTime() : start + 3600000;
+      return now >= start && now < end;
+    });
+    if (!cur && hs.length) cur = hs.reduce((best,x)=>Math.abs(new Date(x.time)-now)<Math.abs(new Date(best.time)-now)?x:best, hs[0]);
+    return cur;
+  }
+  function typeBase(type){
+    if (["rain","heavy_rain","light_rain"].includes(type)) return "rain";
+    if (type==="thunderstorm") return "thunder";
+    if (type==="snow") return "snow";
+    if (type==="fog") return "fog";
+    if (type==="wind") return "wind";
+    if (type==="sunny") return "sunny";
+    if (type==="partly_cloudy") return "partly";
+    return "cloudy";
+  }
+  function clearParticles(){ particles.innerHTML=""; fx.className=""; }
+  function addRain(n){
+    n = matchMedia("(max-width:720px)").matches ? Math.round(n*.5) : n;
+    for(let i=0;i<n;i++){ const e=document.createElement("i"); e.className="rain"; e.style.left=Math.random()*110+"vw"; e.style.animationDelay=-Math.random()*2+"s"; e.style.animationDuration=(.7+Math.random()*.65)+"s"; particles.appendChild(e); }
+  }
+  function addWind(n){
+    n = matchMedia("(max-width:720px)").matches ? Math.round(n*.55) : n;
+    for(let i=0;i<n;i++){ const e=document.createElement("i"); e.className="wind"; e.style.top=(8+Math.random()*82)+"%"; e.style.animationDelay=-Math.random()*2+"s"; e.style.animationDuration=(.8+Math.random()*1.2)+"s"; particles.appendChild(e); }
+  }
+  function addSnow(n){
+    n = matchMedia("(max-width:720px)").matches ? Math.round(n*.55) : n;
+    const chars=["❄","❅","✦"];
+    for(let i=0;i<n;i++){ const e=document.createElement("i"); e.className="snow"; e.textContent=chars[i%chars.length]; e.style.left=Math.random()*110+"vw"; e.style.fontSize=(10+Math.random()*12)+"px"; e.style.animationDuration=(5+Math.random()*5)+"s"; e.style.animationDelay=-Math.random()*6+"s"; particles.appendChild(e); }
+  }
+  function addFog(n){ for(let i=0;i<n;i++){ const e=document.createElement("i"); e.className="fog"; e.style.top=(18+i*15)+"%"; e.style.animationDelay=-Math.random()*6+"s"; particles.appendChild(e); } }
+
+  function applyFx(w){
+    clearParticles();
+    const base=typeBase(w.type);
+    const sun=$("#fx .sun"), heat=$("#fx .heat");
+    sun.style.opacity=(base==="sunny"||base==="partly")?"1":"0";
+    heat.style.opacity=w.temp>=32?"1":"0";
+    if(base==="sunny") sky.style.background="linear-gradient(145deg,#0b2e63,#3c83c9)";
+    else if(base==="partly") sky.style.background="linear-gradient(145deg,#122642,#55779b)";
+    else if(base==="rain") sky.style.background="linear-gradient(145deg,#0a162e,#314861)";
+    else if(base==="thunder") sky.style.background="linear-gradient(145deg,#080e1b,#28243c)";
+    else if(base==="snow") sky.style.background="linear-gradient(145deg,#17263d,#607da2)";
+    else if(base==="fog") sky.style.background="linear-gradient(145deg,#1b2432,#687689)";
+    else if(base==="wind") sky.style.background="linear-gradient(145deg,#10213f,#385a85)";
+    else sky.style.background="linear-gradient(145deg,#111c31,#354963)";
+    if(base==="rain"){ addRain(w.type==="heavy_rain"?100:70); }
+    if(base==="thunder"){ fx.classList.add("thunder"); addRain(85); }
+    if(base==="wind") addWind(20);
+    if(base==="snow") addSnow(55);
+    if(base==="fog") addFog(5);
+    if(w.windKph>=35 && base!=="wind") addWind(12);
+  }
+
+  function renderTabs(){
+    tabs.innerHTML=data.locations.map(l=>`<button class="tab ${l.id===activeId?"active":""}" data-id="${l.id}">${l.name}</button>`).join("");
+    tabs.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{ activeId=b.dataset.id; renderedHourKey=""; renderAll(); }));
+  }
+
+  function renderAll(){
+    const loc=data.locations.find(l=>l.id===activeId) || data.locations[0];
+    const cur=currentFor(loc);
+    if(!cur) return;
+    renderTabs();
+    $("#generated").textContent=`资料生成：${fmt.format(new Date(data.generatedAt))} · ${data.source||"weather"}`;
+    $("#place").textContent=`⌖ ${loc.name} · ${loc.area||""}`;
+    $("#bigIcon").textContent=cur.icon||"🌤️";
+    $("#temp").textContent=Math.round(cur.temp);
+    $("#condition").textContent=cur.label||cur.type;
+    $("#desc").textContent=`当前采用 ${fmt.format(new Date(cur.time))} 时段预报 · ${cur.temp>=32?"高温效果 ON":"一般温度"}${cur.windKph>=35?" · 强风效果 ON":""}`;
+    $("#humidity").textContent=cur.humidity+"%";
+    $("#pop").textContent=cur.precipProbability+"%";
+    $("#uv").textContent=Number(cur.uv).toFixed(1);
+    $("#wind").textContent=cur.windKph+" km/h";
+    hourly.innerHTML=(loc.hours||[]).map(x=>{
+      const isNow=x.time===cur.time;
+      return `<article class="card ${isNow?"active-now":""}">
+        <div class="badge">現在</div>
+        <div class="hour">${hourFmt.format(new Date(x.time))}:00</div>
+        <div class="ico">${x.icon||"🌤️"}</div>
+        <div class="ct">${Math.round(x.temp)}°</div>
+        <div class="cc">${x.label||x.type}</div>
+        <div class="mini"><span>濕度</span><b>${x.humidity}%</b></div>
+        <div class="mini"><span>降雨</span><b>${x.precipProbability}%</b></div>
+        <div class="mini"><span>UV</span><b>${Number(x.uv).toFixed(1)}</b></div>
+      </article>`;
+    }).join("");
+    applyFx(cur);
+    renderedHourKey=cur.time;
+    setTimeout(()=>hourly.querySelector(".active-now")?.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"}),80);
+  }
+
+  function tick(){
+    $("#clock").textContent="JST "+fmt.format(new Date()).replace(/^\d+\/\d+\s*/,"");
+    const loc=data.locations.find(l=>l.id===activeId) || data.locations[0], cur=currentFor(loc);
+    if(cur && cur.time!==renderedHourKey) renderAll();
+  }
+
+  renderAll();
+  tick();
+  setInterval(tick,30000);
+})();
 </script>
 </body>
 </html>
