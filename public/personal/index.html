@@ -24,6 +24,7 @@
     .finance{background:linear-gradient(145deg,#0b755f,#18a77f)}
     .future{background:linear-gradient(145deg,#6046c7,#8a63e8)}
     .notice{background:linear-gradient(145deg,#b64d2d,#e37a48)}
+    .nutrition{background:linear-gradient(145deg,#7b3fb0,#b34fc7)}
     .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
     .icon{width:48px;height:48px;border-radius:15px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:25px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
     .arrow{font-size:23px;opacity:.8;line-height:1}
@@ -39,7 +40,7 @@
     <header class="head">
       <div class="eyebrow">Personal</div>
       <h1>生活信息导航</h1>
-      <p class="sub">天气、市场与XXL兑换码集中入口</p>
+      <p class="sub">天气、市场、营养与XXL兑换码集中入口</p>
     </header>
 
     <section class="grid" aria-label="导航">
@@ -63,6 +64,11 @@
       <a class="card notice" href="/personal/notifications.html">
         <div class="top"><div class="icon">🎁</div><div class="arrow">↗</div></div>
         <div><div class="title">XXL兑换码</div><div class="desc">每日更新可用兑换码</div></div>
+      </a>
+
+      <a class="card nutrition" href="./nutrition.html">
+        <div class="top"><div class="icon">🥗</div><div class="arrow">↗</div></div>
+        <div><div class="title">营养目标</div><div class="desc">个人营养范围计算与 JSON 导出</div></div>
       </a>
     </section>
   </main>
