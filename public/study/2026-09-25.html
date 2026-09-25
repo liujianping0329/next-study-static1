@@ -1,0 +1,71 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>正式 Day 26｜Pulsar、Spring Bean Scope、MCP vs Skill 与 Embedding 缓存</title><style>:root{--bg:#f5f6f8;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--soft:#f3f4f6;--code:#0f172a;--ai:#eff6ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial;line-height:1.7}.container{width:min(1000px,calc(100% - 32px));margin:36px auto 64px}.hero,.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;margin-bottom:18px}.hero h1{margin:0;font-size:30px}.sub,.source,.footer{color:var(--muted)}.tag{display:inline-block;font-size:12px;background:var(--soft);border-radius:999px;padding:4px 9px;margin:12px 5px 0 0}h2{font-size:21px}h3{margin:22px 0 8px;font-size:18px}.source{font-size:13px;border-left:3px solid #d1d5db;padding-left:10px}pre{background:var(--code);color:#e5e7eb;border-radius:12px;padding:16px;overflow:auto}.ai,.answer{padding:14px 16px;margin:14px 0;border-radius:10px}.ai{background:var(--ai)}.answer{background:#fafafa;border-left:4px solid #111827}details{margin:12px 0;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fafafa}summary{cursor:pointer;font-weight:700}.footer{text-align:center;font-size:13px}@media(max-width:600px){.container{width:calc(100% - 20px);margin-top:20px}.hero,.card{padding:20px}}</style></head><body><main class="container">
+<section class="hero"><h1>正式 Day 26｜Pulsar、Spring Bean Scope、MCP vs Skill 与 Embedding 缓存</h1><div class="sub">2026-09-25｜前一天复习 + 固定 5 道新题</div><span class="tag">Pulsar</span><span class="tag">Spring</span><span class="tag">MCP</span><span class="tag">Skill</span><span class="tag">RAG</span><div class="answer"><b>进度：</b>后端 #74～#76（MQ #23～#24 + Spring #1）+ Agent Tool Calling/MCP 1.1.5 + AI基础 RAG #30。</div></section>
+<section class="card"><h2>① 前一天复习｜先凭记忆回答</h2><div class="source">来源：2026-09-24 正式 Day 25。先口述，再展开答案。</div>
+<h3>1. Kafka Consumer</h3><p>为什么 poll 到消息不等于业务已经可靠消费？</p><details><summary>答完后展开</summary><p>poll 只代表客户端取得记录；可靠性取决于业务处理成功与 offset commit 的边界。业务失败却提前提交 offset，会形成业务层面的丢消息。</p></details>
+<h3>2. Rebalance</h3><p>为什么 Rebalance 不是免费的自动负载均衡？</p><details><summary>答完后展开</summary><p>它可能带来消费暂停、延迟抖动、本地状态重建与重复处理。</p></details>
+<h3>3. Kafka 堆积</h3><p>Consumer 已经等于 Partition 数时，为什么不能继续盲目扩 Consumer？</p><details><summary>答完后展开</summary><p>额外 Consumer 会空闲，还必须确认 DB/API 等下游是否才是真瓶颈。</p></details>
+<h3>4. MCP</h3><p>Host、Client、Server 分别承担什么角色？</p><details><summary>答完后展开</summary><p>Host 是 AI 应用；Client 在 Host 内连接 MCP Server；Server 暴露 Tools、Resources、Prompts 等能力。</p></details>
+<h3>5. RAG</h3><p>为什么企业 RAG 的 ACL 应在 Retrieval 阶段做？</p><details><summary>答完后展开</summary><p>无权限 Chunk 一旦进入模型上下文就扩大泄露面，权限必须在检索阶段强制过滤。</p></details>
+<h3>间隔复习</h3><p>DLX 本身是死信队列吗？Publisher Confirm 成功等于 Consumer 业务成功吗？</p><details><summary>答完后展开</summary><p>DLX 是交换机，负责重新路由死信，真正存储的是 Queue。Confirm 只确认 Publisher→Broker，不代表消费端业务事务成功。</p></details></section>
+<section class="card"><h2>② 新题 1｜Apache Pulsar 核心架构</h2><div class="source">《后端高频面试题大集合》MQ #23｜PDF 105～108页｜正式后端 #74</div>
+<h3>概念</h3><p>Pulsar 是分布式消息与流平台。原资料介绍 Topic、Namespace、Producer、Consumer、Partition，以及 Broker、BookKeeper、ZooKeeper。</p>
+<h3>原理</h3><pre>Producer / Consumer
+        ↓
+ Broker（服务、路由、分发）
+        ↓
+ BookKeeper（持久化）
+        ↑
+ Metadata Store（协调与元数据）</pre>
+<h3>为什么</h3><p>Broker 与持久化存储解耦，服务层和存储层可以分别扩展。</p>
+<h3>实际项目怎么用</h3><p>多租户、大规模 Topic、跨集群或希望计算存储分离时可纳入选型，同时考虑团队生态和运维成本。</p>
+<div class="ai"><b>AI补充/纠错：</b>原资料把 ZooKeeper 写成固定核心组件已经过时。2026 当前 Pulsar 应理解为 Broker + BookKeeper + Metadata Store；ZooKeeper 仍支持，但新集群推荐 Oxia。</div>
+<h3>常见坑</h3><p>把 Broker 当最终存储；把 ZooKeeper 当永远不可替换；只比较吞吐。</p>
+<div class="answer"><b>面试怎么说：</b>Pulsar 的 Broker 负责服务与分发，BookKeeper 负责持久化，Metadata Store 负责元数据和协调；当前新集群推荐 Oxia。</div>
+<h3>可能追问</h3><p>Pulsar 与 Kafka 架构差异？可先从 Pulsar 的服务层/存储层分离讲起。</p></section>
+<section class="card"><h2>② 新题 2｜Pulsar Tenant 与 Namespace</h2><div class="source">《后端高频面试题大集合》MQ #24｜PDF 108～109页｜正式后端 #75</div>
+<h3>概念</h3><p>Tenant 是高层多租户边界；Namespace 位于 Tenant 内，进一步组织 Topic、权限与策略。</p>
+<h3>原理</h3><pre>Tenant: commerce
+ ├─ Namespace: order-prod
+ └─ Namespace: notify-prod</pre>
+<h3>为什么</h3><p>让多个团队共享集群的同时保留清晰的逻辑治理边界。</p>
+<h3>实际项目怎么用</h3><p>可按组织/平台划 Tenant，再按业务域和环境划 Namespace。</p>
+<div class="ai"><b>AI补充/纠错：</b>逻辑隔离不等于物理隔离；底层 Broker、BookKeeper、网络等仍可能共享，应结合权限、配额和必要的物理隔离。</div>
+<h3>常见坑</h3><p>粒度过细、命名无规范、只做名称隔离却没做认证授权。</p>
+<div class="answer"><b>面试怎么说：</b>Tenant 是高层多租户边界，Namespace 是 Tenant 内更细的业务和策略边界，Topic 位于 Namespace 下。</div>
+<h3>可能追问</h3><p>和 RabbitMQ VHost 类似吗？都是逻辑隔离，但层级模型与底层架构不同，不能简单等价。</p></section>
+<section class="card"><h2>② 新题 3｜Spring Bean Scope</h2><div class="source">《后端高频面试题大集合》Spring #1｜PDF 110页｜正式后端 #76</div>
+<h3>概念</h3><p>Scope 决定 Bean 实例生命周期。默认是 singleton，即每个 Spring IoC Container 中一个 Bean Definition 通常对应一个实例。</p>
+<h3>原理</h3><pre>singleton   → 容器内共享
+prototype   → 每次获取创建
+request     → HTTP Request
+session     → HTTP Session
+application → ServletContext
+websocket   → WebSocket</pre>
+<h3>为什么 / 项目怎么用</h3><p>无状态 Service/Repository 通常使用 singleton；不要在 singleton 成员字段保存每个请求/用户的可变状态。</p>
+<div class="ai"><b>AI补充/纠错：</b>原资料的 Global Session/Global Request 属于旧 Portlet 语境。当前 Spring 官方常用内建 Scope 如上。另一个坑是 prototype 普通注入 singleton 时只在 singleton 创建时解析一次；需要动态新实例可用 Provider/ObjectProvider。</div>
+<h3>常见坑</h3><p>误以为 Spring singleton 是 JVM 全局单例；误以为 singleton 自动线程安全。</p>
+<div class="answer"><b>面试怎么说：</b>Spring 默认 singleton；prototype 每次获取创建；Web 环境还有 request、session、application、websocket。Scope 描述生命周期，不自动保证线程安全。</div>
+<h3>可能追问</h3><p>Singleton Bean 一定线程安全吗？不一定，关键看是否存在共享可变状态。</p></section>
+<section class="card"><h2>② 新题 4｜MCP 和 Skill 的区别</h2><div class="source">《AI应用开发面试题 / Agent / RAG》Tool Calling / MCP 1.1.5</div>
+<h3>概念</h3><p>MCP 是标准化外部能力连接协议；Skill 更偏可复用的任务知识、行为指南、Prompt 与执行方法。</p>
+<h3>原理</h3><pre>MCP   → 外部能力如何发现、连接、调用
+Skill → 某类任务应该怎样完成</pre>
+<h3>为什么 / 项目怎么用</h3><p>Java/Spring AI 中，真实数据库/API 操作放 Tool/MCP 边界；编码规范、业务步骤、领域工作流放 Skill/Prompt 层，并按任务加载。</p>
+<div class="ai"><b>AI补充/纠错：</b>“Skill 一定比 MCP 占更多 Token”不是绝对规律。上下文占用取决于 Skill 长度、Tool 数量、Schema 复杂度以及是否按需加载。</div>
+<h3>常见坑</h3><p>把 Skill 当权限边界；把 MCP 当 Agent；一次注入全部 Skill 和 Tool Schema。</p>
+<div class="answer"><b>面试怎么说：</b>MCP 解决外部能力标准化连接，Skill 解决任务知识与行为指导。谁更占上下文没有绝对答案，生产上应动态加载当前任务需要的内容。</div>
+<h3>可能追问</h3><p>Skill 能替代 MCP 吗？不能，真实外部操作仍需要 Tool/API/MCP 等执行通道。</p></section>
+<section class="card"><h2>② 新题 5｜RAG Embedding 性能与缓存</h2><div class="source">《AI大模型面试题-基础篇》RAG #30｜PDF 25～26页</div>
+<h3>概念</h3><p>Embedding 会消耗算力、API 额度与时间；相同且未变化文本重复生成向量属于浪费，因此应结合缓存和增量索引。</p>
+<h3>原理</h3><pre>Chunk
+ ↓ text hash + model/version
+Cache
+ ├─ Hit  → reuse embedding
+ └─ Miss → EmbeddingModel → cache + VectorStore</pre>
+<h3>为什么</h3><p>知识库大量内容长期不变，重新发布时只需为新增或变化 Chunk 重新生成向量。</p>
+<h3>实际项目怎么用</h3><p>Spring AI ingestion service 可用 textHash + embeddingModel + modelVersion + dimensions 识别缓存，只对变化内容重新 Embedding 并 upsert VectorStore。</p>
+<div class="ai"><b>AI补充/纠错：</b>缓存不能只用原始文本做 Key。模型、版本、维度、Chunk/清洗规则变化时应失效并重建。原资料的“快 10～100 倍”属于示例，不应当固定性能承诺。</div>
+<h3>常见坑</h3><p>模型升级仍复用旧向量；文档删除但 VectorStore 残留；Chunk 策略变化却未重建索引。</p>
+<div class="answer"><b>面试怎么说：</b>Embedding 优化重点是批量、缓存、增量索引；缓存身份必须包含文本和模型版本信息，模型或分块策略变化时正确失效。</div>
+<h3>可能追问</h3><p>为什么不能永久缓存？因为模型和预处理变化会改变向量语义空间。</p></section>
+<section class="card"><h2>③ 今日正式进度</h2><p>后端：#76（MQ #24 + Spring #1）<br>Agent：Tool Calling / MCP 1.1.5<br>AI基础：RAG #30</p></section><div class="footer">Java 后端 + AI 面试知识学习记录｜2026-09-25</div></main></body></html>
