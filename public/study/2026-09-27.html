@@ -1,0 +1,64 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>正式 Day 28｜Spring IOC、Tool 层与 Token</title><style>:root{--bg:#f5f6f8;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--soft:#f3f4f6;--code:#0f172a;--ai:#eff6ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial;line-height:1.7}.container{width:min(1000px,calc(100% - 32px));margin:36px auto 64px}.hero,.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;margin-bottom:18px}.hero h1{margin:0;font-size:30px}.sub,.source,.footer{color:var(--muted)}h2{font-size:21px}h3{margin:22px 0 8px;font-size:18px}.source{font-size:13px;border-left:3px solid #d1d5db;padding-left:10px}pre{background:var(--code);color:#e5e7eb;border-radius:12px;padding:16px;overflow:auto}.ai,.answer{padding:14px 16px;margin:14px 0;border-radius:10px}.ai{background:var(--ai)}.answer{background:#fafafa;border-left:4px solid #111827}details{margin:12px 0;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fafafa}summary{cursor:pointer;font-weight:700}.footer{text-align:center;font-size:13px}</style></head><body><main class="container">
+<section class="hero"><h1>正式 Day 28｜Spring IOC、Tool 层与 Token</h1><div class="sub">2026-09-27｜前一天复习 + 固定 5 道新题</div><div class="answer"><b>进度：</b>后端 #80～#82（Spring #4～#6）+ Agent Tool Calling/MCP 1.1.7 + AI基础 #32。</div></section>
+<section class="card"><h2>① 前一天复习｜先凭记忆回答</h2><div class="source">来源：2026-09-26 正式 Day 27；复习来源分别为《后端高频面试题大集合》Spring #2～#4、《AI应用开发面试题 / Agent / RAG》1.1.6、《AI大模型面试题-基础篇》RAG #31。先口述，再展开。</div>
+<p>1. 事务传播属性和隔离级别分别解决什么问题？</p><details><summary>答完后展开</summary><p>传播属性解决调用链已有事务时当前方法如何参与；隔离级别解决并发事务之间的数据可见性。</p><p><b>面试口述：</b>传播看事务边界怎么传，隔离看并发事务能看到什么。</p></details>
+<p>2. 为什么同类 this.xxx() 调用经常让 @Transactional 失效？</p><details><summary>答完后展开</summary><p>Proxy 模式下 self-invocation 没经过 Spring 代理，事务拦截器没有机会增强。</p></details>
+<p>3. REQUIRED、REQUIRES_NEW、NESTED 最大区别？</p><details><summary>答完后展开</summary><p>REQUIRED 加入外层；REQUIRES_NEW 挂起外层并开独立物理事务；NESTED 常依赖 Savepoint 做局部回滚。</p></details>
+<p>4. Skill 与 MCP 如何配合？</p><details><summary>答完后展开</summary><p>Skill 描述任务方法和流程，MCP 提供标准化外部能力；应用按任务加载 Skill，再暴露必要 Tool。</p></details>
+<p>5. Fine-Tuning、RAG、Tool/API 分别更适合什么？</p><details><summary>答完后展开</summary><p>稳定行为/任务能力可考虑微调；动态知识与引用用 RAG；实时精确数据用 Tool/API。</p></details>
+<p>间隔复习：为什么 Kafka Consumer 数超过 Partition 数不会继续线性扩容？为什么 Publisher Confirm 不等于业务成功？</p></section>
+<section class="card"><h2>② 新题 1｜Spring IOC 容器有哪些方式加入 Bean？</h2><div class="source">《后端高频面试题大集合》Spring #4｜正式后端 #80</div>
+<h3>概念→原理→为什么</h3><p>IoC 容器负责 Bean 的定义、创建、依赖和生命周期。原资料列出 XML、组件扫描注解、Java @Configuration/@Bean 与 @Import。</p><pre>Bean 来源
+├─ @Component / @Service / @Repository
+├─ @Configuration + @Bean
+├─ @Import
+└─ XML（旧项目仍常见）</pre>
+<h3>实际项目怎么用</h3><p>自己控制的业务类优先组件扫描；第三方 SDK 或需要显式构造参数时常用 @Bean；框架/Starter 常用 @Import、ImportSelector 或自动配置。</p>
+<div class="ai"><b>AI补充/纠错：</b>@Import 不只是“导入配置类”；框架扩展还会涉及 ImportSelector、ImportBeanDefinitionRegistrar。不要把“Bean 加入容器”只理解成 @Component。</div>
+<h3>常见坑→面试怎么说→可能追问</h3><p>常见坑是扫描范围错误、同类型多 Bean 注入歧义。面试可说：Spring 最常见注册来源是组件扫描、@Bean、@Import 和 XML，业务项目与框架扩展选择不同入口。追问：@Primary/@Qualifier 怎么处理歧义？</p></section>
+<section class="card"><h2>② 新题 2｜Spring Boot 3.x 自定义 Starter</h2><div class="source">《后端高频面试题大集合》Spring #5｜正式后端 #81</div>
+<h3>概念→原理</h3><p>Starter 的目标是把依赖、默认 Bean、配置属性和条件装配封装起来，让业务项目“引入依赖 + 配配置”即可使用。</p><pre>starter dependency
+   ↓
+AutoConfiguration.imports
+   ↓
+@AutoConfiguration
++ @ConfigurationProperties
++ @ConditionalOn...
+   ↓
+业务 Bean</pre>
+<h3>为什么→实际项目怎么用</h3><p>例如把公司统一 Push、日志或 AI Client 封成 Starter，业务服务只配置 endpoint/key，自动配置按条件创建 Client。</p>
+<div class="ai"><b>AI补充/纠错：</b>原资料说“Spring Boot 3.x 移除 spring.factories”过于宽泛。准确说法是：注册自动配置类不再使用旧的 spring.factories EnableAutoConfiguration 机制，使用 META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports；spring.factories 机制本身并非所有用途都不存在。</div>
+<h3>常见坑→面试怎么说→可能追问</h3><p>避免无条件抢占用户自定义 Bean，通常配合 @ConditionalOnMissingBean。追问：Starter 和 AutoConfiguration 模块是否一定是同一个 jar？如何做配置提示 metadata？</p></section>
+<section class="card"><h2>② 新题 3｜IOC 与 DI 的联系和区别</h2><div class="source">《后端高频面试题大集合》Spring #6｜正式后端 #82</div>
+<h3>概念→原理</h3><p>IoC 是控制反转思想：对象创建和依赖管理从业务代码转交容器；DI 是实现 IoC 的主要方式：容器把对象需要的依赖注入进去。</p><pre>IoC：谁控制对象？
+业务代码 → Spring Container
+
+DI：依赖怎么给对象？
+Container → Constructor → Service</pre>
+<h3>实际项目怎么用</h3><p>Controller 不自己 new Service，Service 不自己 new Repository，由 Spring 根据 BeanDefinition 构造依赖图。</p>
+<div class="ai"><b>AI补充/纠错：</b>现代 Spring 项目优先构造器注入：依赖显式、便于测试，也能把必需依赖设计成 final。字段注入虽然方便，但依赖隐藏且不利于普通单元测试。</div>
+<h3>面试怎么说→可能追问</h3><p>一句话：IoC 是设计思想，DI 是容器实现控制反转的重要手段。追问通常进入 BeanDefinition、Bean 生命周期和循环依赖。</p></section>
+<section class="card"><h2>② 新题 4｜Agent Tool 层怎么定义、怎么被调用？</h2><div class="source">《AI应用开发面试题 / Agent / RAG》Tool Calling / MCP 1.1.7</div>
+<h3>概念→原理</h3><p>原资料把 Tool 定义拆成 name、description、parameters(JSON Schema)，运行时由 Tool Registry/Dispatcher 完成查找、校验、执行和结果回注。</p><pre>messages + tool schemas
+ → LLM
+ → tool_call(name,args)
+ → Registry / Dispatcher
+ → 参数校验 + 权限
+ → Java Service / API
+ → tool_result
+ → LLM</pre>
+<h3>Spring Boot / Spring AI 怎么用</h3><p>Tool 可以映射到 Java 方法或 Callback；description 要清楚说明何时使用，Java 层负责参数、认证授权、超时、幂等和异常包装。</p>
+<div class="ai"><b>AI补充/纠错：</b>Tool Schema 只是模型接口契约，不是安全边界。模型选择了某 Tool 也不能绕过 Java 权限校验；删除、付款等高风险 Tool 还应加入确认和审计。</div>
+<h3>常见坑→面试怎么说→可能追问</h3><p>Tool 太多会增加 Token 和误选率；返回结果过大也会污染 Context。追问：1000 个 Tools 怎么处理？可用两阶段路由、语义检索 Top-K、分层动态加载。</p></section>
+<section class="card"><h2>② 新题 5｜什么是 Token？为什么工程上很重要？</h2><div class="source">《AI大模型面试题-基础篇》#32</div>
+<h3>概念→原理</h3><p>Token 是 Tokenizer 把文本编码后供模型处理的基本单位，不等同于“一个字”或“一个单词”。不同模型/Tokenizer 对同一文本可能产生不同 Token 数。</p><pre>Text
+ ↓ Tokenizer
+Token IDs
+ ↓ Model
+Output Token IDs
+ ↓ Decode
+Text</pre>
+<h3>为什么→实际项目怎么用</h3><p>Token 数直接影响 Context Window、延迟、显存/计算和 API 成本。RAG 中 Chunk 大小、召回数量、Chat History、Tool Schema 都会争夺同一个上下文预算。</p>
+<div class="ai"><b>AI补充/纠错：</b>原资料举的“GPT-4 最大 32k”和固定中文/英文 Token 示例具有模型与版本依赖，不能当通用规律。工程上应使用目标模型对应的 tokenizer/usage 统计，不要用字符数硬猜 Token。</div>
+<h3>常见坑→面试怎么说→可能追问</h3><p>不要只裁掉最旧消息而不考虑 System Prompt、Tool Schema、RAG Context 的优先级。面试可说：Token 是模型实际处理和计费的单位，我会围绕总 Context Budget 做历史压缩、检索 Top-K 和输出上限控制。追问：Token 超限怎么处理？</p></section>
+<section class="card"><h2>③ 今日正式进度</h2><p>后端：#82（Spring #6）<br>Agent：Tool Calling / MCP 1.1.7<br>AI基础：#32 Token</p></section><div class="footer">Java 后端 + AI 面试知识学习记录｜2026-09-27</div></main></body></html>
