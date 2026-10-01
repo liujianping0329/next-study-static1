@@ -1,1 +1,93 @@
-<!doctype html><html><body><h1>Day 31 - 2026-09-30</h1><p>Study page.</p></body></html>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>正式 Day 31｜Redis Hot Key、BigKey、MCP 与性能优化</title><style>:root{--bg:#f5f6f8;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--soft:#f3f4f6}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;line-height:1.75}.container{width:min(1000px,calc(100% - 32px));margin:36px auto 64px}.hero,.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px;margin-bottom:18px}.hero h1{margin:0 0 8px;font-size:28px}h2{margin:30px 0 14px}h3{margin:22px 0 8px}h4{margin:18px 0 6px}.muted{color:var(--muted)}.tag{display:inline-block;background:var(--soft);border-radius:999px;padding:3px 9px;font-size:12px;margin:2px}pre{background:#111827;color:#f9fafb;padding:16px;border-radius:12px;overflow:auto;white-space:pre-wrap}code{font-family:Consolas,monospace}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid var(--border);padding:9px;text-align:left;vertical-align:top}details{background:var(--soft);padding:12px 14px;border-radius:10px;margin:8px 0}summary{cursor:pointer;font-weight:700}.source{font-size:13px;color:var(--muted);border-left:3px solid #d1d5db;padding-left:10px}.memory{font-weight:700}.nav a{color:#374151;margin-right:14px}</style></head><body><main class="container"><section class="hero"><h1>正式 Day 31｜Redis Hot Key、BigKey、MCP 与性能优化</h1><div class="muted">2026-09-30｜昨日复习 → 今日 5 道新题</div><div><span class="tag">Redis</span><span class="tag">Hot Key</span><span class="tag">BigKey</span><span class="tag">MCP</span><span class="tag">RAG</span></div></section>
+<h2>① 昨日复习｜Day 30</h2><section class="card"><p>先凭记忆回答，再展开答案。不要先看答案。</p>
+<details><summary>1. 本地缓存与 Redis 的根本取舍是什么？</summary><p>本地缓存访问快、无网络开销，但每个实例各有一份数据，一致性困难；Redis 多实例共享，便于统一失效和跨实例访问，但增加网络与 Redis 可用性依赖。常见做法是 Caffeine L1 + Redis L2。</p></details>
+<details><summary>2. Cache-Aside 为什么常见“更新 DB → 删除 Cache”？</summary><p>数据库作为事实源，写成功后删除旧缓存，让下一次读重新加载。相比同时更新 DB 和 Cache，删除能减少双写顺序、失败补偿和并发覆盖问题，但仍有短暂并发窗口，必要时结合 TTL、重试、消息/CDC 或版本控制。</p></details>
+<details><summary>3. 穿透、击穿、雪崩分别是什么？</summary><p>穿透：大量请求查询根本不存在的数据；击穿：单个热点 Key 失效瞬间大量请求打 DB；雪崩：大量 Key 同时失效或缓存整体不可用导致后端被洪峰压垮。</p></details>
+<details><summary>4. 大量 MCP Server 为什么适合先选 Server 再选 Tool？</summary><p>减少一次性暴露给模型的 Tool Schema 数量、Token 消耗和误选概率。先按领域/权限/租户路由到少量 Server，再在候选工具中做检索和调用。</p></details>
+<details><summary>5. 向量数据库在 RAG 哪一层？MMR/Rerank 做什么？</summary><p>向量库主要负责 Retrieval 候选召回；MMR 在相关性与多样性之间平衡，Rerank 对候选做更精细的相关性排序。它们不是 Embedding 本身。</p></details>
+<details><summary>间隔复习：构造器循环依赖为什么三级缓存通常也解决不了？Kafka Consumer 超过 Partition 数量为什么不再增加并行度？</summary><p>构造器参数必须在实例创建时就准备好，尚无可提前暴露的实例；Kafka 同一 Consumer Group 内一个 Partition 同一时刻只分配给一个 Consumer，多出的 Consumer 会空闲。</p></details>
+<p class="source">原资料出处：Day 30 对应《后端高频面试题大集合》缓存专题、《AI应用开发面试题 / Agent / RAG》Tool/MCP 专题、《AI大模型面试题-基础篇》RAG/向量检索专题。以上答案结合前一日正式学习页复盘；扩展说明属于 AI补充/纠错。</p></section>
+<h2>② 今日新学习｜5 道</h2>
+<section class="card"><h3>后端 #89｜Redis Hot Key：是什么、怎么发现</h3><p class="source">原资料出处：《后端高频面试题大集合》Redis / Hot Key 相关题。AI补充/纠错：具体阈值依业务容量、实例规格和延迟目标判断，不把某个固定 QPS 当统一标准。</p>
+<h4>白话理解</h4><p>Redis 本来是用来替数据库扛流量的，但如果几十万请求都集中访问同一个 Key，压力就从数据库转移到了负责这个 Key 的 Redis 节点。Hot Key 的核心不是“数据大”，而是<strong>访问高度集中</strong>。</p>
+<h4>机制</h4><pre>大量请求
+   ↓
+user:hot-product:123
+   ↓ hash / slot
+Redis Cluster 某一个节点
+   ↓
+CPU / 网络 / 单 Key QPS 集中</pre><p>Cluster 能把不同 Key 分散到不同 slot，但同一个 Key 的 slot 是固定的，因此简单扩容节点并不会自动把这个 Key 的请求拆散。</p>
+<h4>怎么发现</h4><p>可从客户端 SDK/埋点统计 Key 访问频率，在网关或业务层按 Key 聚合，也可以结合 Redis 运行指标、slowlog、热点统计能力。大规模系统可把访问事件送入 Kafka，再用流式窗口统计 Top-N Key。</p>
+<h4>项目例子</h4><p>秒杀商品详情 <code>product:10086</code> 平时 500 QPS，活动开始后突然 5 万 QPS。即使 Redis Cluster 有 10 个节点，这个 Key 仍主要命中其中一个节点。此时应先确认是不是单 Key 流量倾斜，而不是看到 Redis 慢就直接扩整个集群。</p>
+<h4>常见坑</h4><p>把 BigKey 当 Hot Key；只看 Redis 总 QPS 不看 Key 分布；认为 Cluster 节点越多单 Hot Key 就自动均摊。</p>
+<h4>可能追问</h4><p><b>Q：</b>Hot Key 一定导致 Redis 宕机吗？<br><b>思路：</b>不一定，取决于 QPS、Value 大小、网络、CPU 和命令复杂度，但它会造成局部瓶颈和负载倾斜。</p><p><b>Q：</b>怎么在线发现？<br><b>思路：</b>客户端采样 + Redis 指标 + 流式统计组合，避免为了统计本身制造过大开销。</p><p><b>Q：</b>Hot Key 与 BigKey？<br><b>思路：</b>前者是访问频率问题，后者是单值体积/元素规模问题。</p>
+<p><b>30秒面试口述：</b>Hot Key 是访问量高度集中在少数 Key，导致 Redis 某个节点 CPU、网络或吞吐成为瓶颈。Cluster 只能分散不同 Key，不能自动拆散同一个 Key。我会通过客户端采样、业务埋点和 Redis 指标发现热点，再用本地缓存、前置缓存或热点副本等方式分流。</p><p class="memory">一句话：Hot Key 不是东西大，而是找它的人太多。</p></section>
+<section class="card"><h3>后端 #90｜Redis Hot Key 怎么治理</h3><p class="source">原资料出处：《后端高频面试题大集合》Redis Hot Key 治理相关内容。AI补充/纠错：分布式锁主要解决“失效后并发重建”，不是持续命中型 Hot Key 的通用解法。</p>
+<h4>核心目标</h4><p>不要让所有请求都走到同一个 Redis 节点。治理一般从“把请求挡在更前面”和“把同一热点拆成多份”两个方向做。</p>
+<table><tr><th>方案</th><th>适合</th><th>代价</th></tr><tr><td>Caffeine 本地缓存</td><td>高频读、允许短暂不一致</td><td>多实例失效同步</td></tr><tr><td>Gateway/Nginx 前置缓存</td><td>公共热点内容</td><td>缓存规则和失效治理</td></tr><tr><td>热点 Key 多副本</td><td>读远多于写</td><td>副本一致性、路由复杂度</td></tr><tr><td>预热 + 后台刷新</td><td>可预测热点</td><td>需要热点识别和刷新机制</td></tr></table>
+<h4>两级缓存流程</h4><pre>Request
+  ↓
+Caffeine(L1) ──命中→ 返回
+  ↓ miss
+Redis(L2) ─────命中→ 回填 L1 → 返回
+  ↓ miss
+DB → Redis → L1 → 返回</pre><p>更新数据时要考虑 L1 与 L2 的失效。可以通过消息广播让各实例删除本地缓存；即使消息偶尔失败，也用较短 TTL 做最终兜底。</p>
+<h4>为什么“加分布式锁”不等于治理 Hot Key</h4><p>如果热点 Key 已存在且每次请求都命中 Redis，根本没有缓存重建竞争，锁不会减少读取 Redis 的次数。锁更适合热点 Key 过期瞬间的“缓存击穿”。</p>
+<h4>追问</h4><p><b>本地缓存会不会脏？</b> 会，所以要明确一致性要求，用消息失效、版本号或短 TTL 控制窗口。<br><b>多副本怎么做？</b> 可把逻辑 Key 映射到多个物理副本并随机/哈希读取，但更新时必须处理副本失效。<br><b>什么数据不适合 L1？</b> 强一致、频繁写、敏感权限结果通常要谨慎。</p>
+<p><b>30秒面试口述：</b>治理 Hot Key 的核心是分流。我优先考虑 Caffeine L1 把热点挡在 JVM 内，再根据业务考虑前置缓存或 Redis 热点多副本。更新时通过消息或版本机制失效本地缓存并用 TTL 兜底。分布式锁主要处理失效后的并发重建，不是持续 Hot Key 的根本方案。</p><p class="memory">一句话：别让所有请求都走到同一个 Redis Key。</p></section>
+<section class="card"><h3>后端 #91｜Redis BigKey</h3><p class="source">原资料出处：《后端高频面试题大集合》Redis BigKey 相关题。AI补充/纠错：资料或网络常见的 KB、MB、集合元素数量只是经验阈值，BigKey 应结合延迟、网络、内存和运维影响判断。</p>
+<h4>白话理解</h4><p>BigKey 是“一个 Key 背后的东西太重”。例如一个 String 存了数 MB JSON，或者一个 Hash/Set/List 塞了几十万元素。它与 Hot Key 可以独立存在，也可以同时发生。</p>
+<h4>为什么危险</h4><pre>Client → Redis
+           ├─ 读取大 Value → 网络耗时/带宽
+           ├─ 操作大集合 → 命令执行时间增长
+           ├─ 删除大对象 → 内存释放成本
+           └─ Cluster 迁移 → 单 Key 搬迁成本高</pre><p>Redis 很多命令执行仍依赖主线程处理关键路径，因此一次重操作可能拖慢其他请求。</p>
+<h4>排查与治理</h4><p>可以用 <code>redis-cli --bigkeys</code> 做抽样扫描，并用 <code>MEMORY USAGE key</code> 查看单 Key 内存占用。治理上拆分大 JSON、对集合分桶/分页、避免一次返回全部元素；删除很大的对象时可考虑 <code>UNLINK</code>，让内存回收异步处理。</p>
+<h4>Hot Key vs BigKey</h4><table><tr><th></th><th>Hot Key</th><th>BigKey</th></tr><tr><td>核心</td><td>访问频率高</td><td>Value/集合规模大</td></tr><tr><td>主要风险</td><td>单节点流量倾斜</td><td>网络、延迟、内存、迁移</td></tr><tr><td>典型治理</td><td>分流/多级缓存</td><td>拆 Key/分桶/分页</td></tr></table>
+<h4>追问</h4><p><b>DEL 和 UNLINK 区别？</b> UNLINK 将实际内存回收工作异步化，更适合大对象删除场景。<br><b>SCAN 安全吗？</b> 比 KEYS 更适合线上渐进遍历，但仍应控制频率和 COUNT。<br><b>大 Hash 怎么拆？</b> 可按业务维度或 hash 分桶，例如 <code>user:profile:0..N</code>。</p>
+<p><b>30秒面试口述：</b>BigKey 指单个 Value 很大或集合元素过多，会带来网络、主线程延迟、内存分布和 Cluster 迁移问题。我会通过 bigkeys、MEMORY USAGE 等定位，再按业务拆 Key、分桶或分页，删除大对象时考虑 UNLINK。</p><p class="memory">一句话：Hot Key 怕人多，BigKey 怕东西重。</p></section>
+<section class="card"><h3>Agent Tool Calling / MCP 1.1.10｜推理模型与 Tool Use / MCP</h3><p class="source">原资料出处：《AI应用开发面试题 / Agent / RAG》Tool Calling / MCP 专题。AI补充/纠错：MCP 是 Host/Client 与 Server 间的上下文与工具协议，不应把“某推理模型是否原生支持 MCP”与“宿主能否通过 MCP 调工具”混为一谈。</p>
+<h4>先拆层次</h4><pre>User
+ ↓
+Host / Agent Application
+ ↓ 把可用工具 schema 提供给模型
+LLM ──决定调用 tool X + arguments
+ ↓
+Tool Dispatcher / MCP Client
+ ↓ MCP protocol
+MCP Server
+ ↓
+真实 Java Service / DB / API
+ ↓ tool result
+LLM → 最终回答</pre><p>模型真正做的是“根据工具描述决定要不要调用、调用哪个、参数是什么”。真正的网络连接、认证、权限、超时、重试和执行由 Host/Client/Server 侧完成。</p>
+<h4>与 Function Calling 的关系</h4><p>Function/Tool Calling 更偏模型 API 层：模型输出结构化工具调用意图。MCP 更偏应用集成协议：统一发现和连接外部工具/资源。二者可以组合，而不是二选一。</p>
+<h4>Spring AI 视角</h4><p>Java 应用可以把 Spring Service 方法包装成 Tool Callback；如果工具来自 MCP Server，则由 MCP Client 获取工具定义，再把候选工具提供给 ChatClient/模型。模型返回调用意图后，宿主执行并把结果送回模型。</p>
+<h4>为什么 Tool Schema 不是安全边界</h4><p>Schema 能约束参数形状，但不能证明用户有权限执行操作。真实权限必须在服务端再次校验，例如 tenantId、userId、资源 ACL，不能相信模型生成的参数。</p>
+<h4>追问</h4><p><b>MCP 等于 Agent 吗？</b> 不等于，MCP 是连接协议；Agent 还包含规划、循环、记忆、状态和终止条件。<br><b>模型不支持工具调用怎么办？</b> 可以由应用层做路由或结构化解析，但可靠性通常低于原生结构化 Tool Calling。<br><b>MCP Server 能直接信任模型吗？</b> 不能，认证、授权、参数校验、审计仍必须由系统执行。</p>
+<p><b>30秒面试口述：</b>我会把模型 Tool Calling 和 MCP 分层理解：模型负责根据 schema 选择工具并生成参数，Host 负责调度，MCP Client/Server 负责标准化连接真实工具。MCP 不是模型能力本身，所以不能简单说某推理模型“支持或不支持 MCP”；关键是模型的工具调用能力以及宿主的 MCP 集成。</p><p class="memory">一句话：模型负责选工具，Host/MCP 负责真正调用工具。</p></section>
+<section class="card"><h3>AI基础 #35｜大模型推理与检索系统性能优化</h3><p class="source">原资料出处：《AI大模型面试题-基础篇》性能优化相关题。AI补充/纠错：以下将通用 AI 性能优化转换为 Java / Spring AI / RAG 服务视角；具体优化项必须先通过指标确认瓶颈。</p>
+<h4>第一原则：先拆链路，再优化</h4><pre>HTTP Request
+   ↓
+Query Rewrite / Embedding
+   ↓
+Vector Retrieval
+   ↓
+Metadata ACL Filter
+   ↓
+Rerank
+   ↓
+Context Assembly
+   ↓
+LLM TTFT
+   ↓
+Token Generation
+   ↓
+Tool Call（如有）
+   ↓
+Response</pre><p>如果总耗时 4 秒，必须先知道 4 秒花在哪里。Embedding 慢与 LLM 生成慢的解法完全不同。</p>
+<h4>常见优化</h4><table><tr><th>瓶颈</th><th>手段</th><th>注意</th></tr><tr><td>Embedding</td><td>批处理、缓存、较小模型</td><td>缓存要带模型/版本</td></tr><tr><td>Retrieval</td><td>ANN 参数、索引、过滤下推</td><td>速度与 Recall 有取舍</td></tr><tr><td>Rerank</td><td>减少候选、轻量 reranker</td><td>别为了排序处理几百条</td></tr><tr><td>Context</td><td>去重、压缩、Top-K 调整</td><td>过度压缩会丢证据</td></tr><tr><td>LLM</td><td>模型分级、流式输出、减少无效上下文</td><td>TTFT 与总生成时间分开看</td></tr><tr><td>Tool</td><td>并行独立调用、超时、连接池</td><td>副作用工具不能随意并行/重试</td></tr></table>
+<h4>为什么缓存不是万能答案</h4><p>企业 RAG 的结果通常与知识版本、租户、用户 ACL、Prompt 版本、模型版本有关。如果只用 query 文本做缓存 Key，可能把 A 用户有权限看到的结果直接返回给 B 用户。因此缓存 Key 和失效策略必须包含必要的权限/版本维度。</p>
+<h4>Spring Boot 项目怎么量</h4><p>给 Embedding、VectorStore、Rerank、ChatModel、Tool 分别打 timer/span，记录 P50/P95/P99、TTFT、输出 token 数、候选数量和错误率。先定位最长阶段，再做针对性优化。</p>
+<h4>追问</h4><p><b>Top-K 越小越快，是不是越好？</b> 不是，太小会损失召回；需要离线评测 Recall/答案质量与延迟。<br><b>流式输出降低总耗时吗？</b> 不一定，它主要改善用户感知的首 Token 延迟。<br><b>RAG Cache 为什么必须考虑 ACL？</b> 因为相同问题对不同用户的可见文档集合可能不同。</p>
+<p><b>30秒面试口述：</b>AI 系统优化我不会先说加缓存，而是先把 Embedding、Retrieval、Rerank、Context、LLM TTFT/Generation 和 Tool Call 分段观测。确认瓶颈后再用缓存、批处理、ANN 参数、Top-K、上下文压缩、模型分级或并行 Tool 等手段。企业 RAG 的缓存还必须绑定知识版本和 ACL，避免越权。</p><p class="memory">一句话：先测哪段慢，再优化哪段。</p></section>
+<section class="card"><h2>Day 31 总结</h2><p>今天三条主线：Redis 性能问题要先区分“访问倾斜”和“数据过大”；Agent 系统要分清模型 Tool Calling 与 MCP 的职责边界；AI 性能优化必须先把完整链路量化，再对症优化。</p><div class="nav"><a href="./2026-09-29.html">← Day 30</a><a href="./index.html">学习首页</a></div></section></main></body></html>
