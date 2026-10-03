@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>正式 Day 33｜Redis 过期淘汰、分布式锁、Agent Planning 与量化</title><style>:root{--bg:#f5f6f8;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--soft:#f3f4f6}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;line-height:1.75}.container{width:min(1000px,calc(100% - 32px));margin:36px auto 64px}.hero,.card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:26px;margin-bottom:18px}.hero h1{margin:0 0 8px;font-size:28px}h2{margin:30px 0 14px}h3{margin:20px 0 8px}.muted,.source{color:var(--muted)}.source{font-size:13px;border-left:3px solid #d1d5db;padding-left:10px}pre{background:#111827;color:#f9fafb;padding:15px;border-radius:12px;overflow:auto;white-space:pre-wrap}details{background:var(--soft);padding:12px 14px;border-radius:10px;margin:8px 0}summary{font-weight:700;cursor:pointer}.memory{font-weight:700}</style></head><body><main class="container"><section class="hero"><h1>正式 Day 33｜Redis 过期淘汰、分布式锁、Agent Planning 与量化</h1><div class="muted">2026-10-02｜昨日复习 → 今日 5 道新题</div></section>
+<h2>① 前一天复习｜Day 32</h2><section class="card"><p>先凭记忆回答，再展开核对。</p>
+<details><summary>1. Redis 为什么需要序列化？</summary><p>Java 对象需要转换成可存储/传输的字节表示。JSON、字符串、二进制协议各自在可读性、体积、跨语言与兼容性上取舍。</p></details>
+<details><summary>2. RDB 与 AOF 的核心差异？</summary><p>RDB 偏向某时点快照；AOF 偏向记录写操作。选择要结合 RPO、RTO、恢复速度与运行成本。</p></details>
+<details><summary>3. 持久化、复制、Failover、Backup 为什么不同？</summary><p>分别解决重启恢复、在线副本、故障接管和历史灾难恢复，不能互相简单替代。</p></details>
+<details><summary>4. 结构化输出为什么比“请返回 JSON”可靠？</summary><p>Prompt 是软约束；Schema + DTO + Validation 能建立机器可检查的输出契约，但仍不能替代业务和权限校验。</p></details>
+<details><summary>5. Streaming 主要改善什么？</summary><p>主要改善 TTFT 和用户感知等待，不代表完整答案总生成时间一定缩短。</p></details><p class="source">出处：正式 Day 32；对应三份学习资料中的 Redis 持久化/序列化、结构化输出与流式推理相关内容。扩展说明为 AI补充/纠错。</p></section>
+<h2>② 今日新学习｜5 道</h2>
+<section class="card"><h3>后端 #95｜Redis 过期 Key 怎么删除</h3><p class="source">出处：《后端高频面试题大集合》Redis 过期策略相关题；机制展开为 AI补充/纠错。</p><p><b>白话：</b>TTL 到了并不意味着 Redis 必须在那一毫秒立刻找到并删除 Key，否则持续扫描全部 Key 的成本会很高。</p><pre>写入 Key + TTL
+      ↓
+时间到期
+ ┌────┴────┐
+访问该 Key  周期性检查
+ ↓          ↓
+发现过期    抽查并清理过期 Key
+ └────┬────┘
+      ↓
+    回收内存</pre><p>因此核心思路是惰性处理配合周期主动清理，在“及时释放内存”和“不要把 CPU 都花在扫过期数据”之间取平衡。</p><p><b>项目例子：</b>大量登录验证码统一设置 5 分钟 TTL。如果同一秒批量创建，也可能形成集中到期压力，可通过业务侧错峰、合理 TTL 和容量设计降低尖峰。</p><p><b>易混：</b>过期删除处理“时间到了”；淘汰策略处理“内存不够”。</p><p><b>追问：</b>为什么不持续全库扫描？过期 Key 一定立即消失吗？大量 Key 同时过期有什么风险？回答围绕 CPU 成本、惰性/周期清理和瞬时压力。</p><p><b>30秒口述：</b>Redis 不会为了 TTL 精确到毫秒而持续全库扫描，而是通过访问时发现过期和周期性主动清理来平衡 CPU 与内存回收。过期删除与 maxmemory 淘汰是两个不同机制。</p><p class="memory">一句话：过期 Key 是到期该清，但不必全库实时扫。</p></section>
+<section class="card"><h3>后端 #96｜Redis 内存淘汰：LRU / LFU / random / TTL</h3><p class="source">出处：《后端高频面试题大集合》Redis 淘汰策略相关题；版本差异说明为 AI补充/纠错。</p><p><b>白话：</b>当 Redis 达到配置的内存上限时，需要决定“还能不能写”和“如果要腾空间，牺牲谁”。</p><p><b>核心：</b><code>noeviction</code> 不主动淘汰以满足新增写入；策略还可按候选范围区分 volatile（通常只考虑带 TTL 的 Key）和 allkeys，再结合 LRU、LFU、random 等规则选 Key。</p><p>LRU 更关注最近多久没访问；LFU 更关注访问频率。Redis 实际采用适合自身性能目标的近似机制，不应把教材中的理想算法实现直接套过来。</p><p><b>项目：</b>纯缓存 Redis 可以选择更符合访问模式的淘汰策略；如果同一实例混入不能被淘汰的重要状态，就必须重新考虑数据隔离，而不是只调一个 policy。</p><p><b>追问：</b>LRU 与 LFU 哪个更适合长期热点？volatile 与 allkeys 差在哪？noeviction 会怎样？</p><p><b>30秒口述：</b>Redis 达到 maxmemory 后按配置策略决定是否和如何淘汰 Key。LRU 偏最近访问时间，LFU 偏访问频率；还要区分只从带 TTL 的 Key 中选还是从全部 Key 中选。策略必须结合数据是否允许被淘汰来设计。</p><p class="memory">一句话：过期是时间到了，淘汰是内存不够了。</p></section>
+<section class="card"><h3>后端 #97｜Redis 分布式锁</h3><p class="source">出处：《后端高频面试题大集合》Redis 分布式锁相关题；工程边界为 AI补充/纠错。</p><p><b>白话：</b>多实例 Spring Boot 同时处理同一资源时，本机 synchronized 管不到另一台机器，需要一个大家都能竞争的共享锁。</p><pre>SET lock:key randomToken NX PX lease
+      ↓
+成功：进入临界区
+      ↓
+业务执行
+      ↓
+原子判断 value == randomToken
+      ↓
+DEL lock:key</pre><p>NX 保证只有不存在时写入；TTL 防止持锁进程崩溃造成永久锁；随机 Token 标识锁的拥有者。释放时不能先 GET 再 DEL，因为两条命令之间锁可能已经过期并被别人重新获得，应使用原子脚本/等价机制完成“比较 + 删除”。</p><p><b>为什么锁仍不够：</b>租约可能过期、网络可能分区、业务可能重试，因此关键写操作还应结合幂等键、数据库唯一约束或版本条件等业务不变量。</p><p><b>追问：</b>为什么一定要 TTL？为什么 Token 不能固定？Watchdog 解决什么又不能解决什么？回答围绕失联、误删和续租边界。</p><p><b>30秒口述：</b>Redis 锁通常使用带唯一 Token 的 SET NX PX 原子抢锁，TTL 防止永久死锁，释放时必须原子比较 Token 后删除，避免旧请求误删新锁。生产上锁不是业务正确性的唯一防线，还应结合幂等和数据库约束。</p><p class="memory">一句话：锁要有主人、有期限，释放还必须原子验明正身。</p></section>
+<section class="card"><h3>Agent 1.1.12｜Planning：为什么复杂 Agent 先规划再执行</h3><p class="source">出处：《AI应用开发面试题 / Agent / RAG》Agent Planning 相关内容；Java/Spring 化属于 AI补充/纠错。</p><p><b>白话：</b>复杂任务如果每一步都只看眼前，很容易遗漏依赖、重复调用或走错方向。Planning 先把目标拆成可执行步骤，再逐步执行并根据观察结果调整。</p><pre>Goal → Planner → Steps → Executor
+                         ↓
+                       Tool
+                         ↓
+                    Observation
+                         ↓
+                      Re-plan</pre><p><b>与 ReAct：</b>ReAct 更强调每轮基于当前观察继续推理和行动；Plan-and-Execute 更强调先形成较完整计划，再由执行器推进。真实系统可以混合使用。</p><p><b>Spring AI 思路：</b>让模型产生结构化 Plan/Step DTO，Java Service 保存执行状态；每一步 Tool Call 都经过权限、参数、预算和超时检查，Observation 再反馈给模型决定是否重规划。</p><p><b>为什么简单任务不要强行 Planning：</b>多一次 Planner 调用会增加 Token、延迟和失败面。能一次 Tool Call 完成的任务不需要为了“像 Agent”而增加编排。</p><p><b>追问：</b>计划错了怎么办？什么时候 Re-plan？谁控制 Tool 权限？回答重点是 Observation 驱动修正以及执行权属于宿主系统。</p><p><b>30秒口述：</b>Planning 用于把复杂目标拆成有依赖关系的步骤，再由 Executor 调用工具并根据 Observation 重规划。生产系统里我会让 LLM 负责提出计划，让 Java 层负责状态、权限、预算、重试和终止，避免把执行控制权完全交给模型。</p><p class="memory">一句话：模型可以出计划，但系统必须掌握执行权。</p></section>
+<section class="card"><h3>AI基础 #48｜大模型量化 INT8 / INT4</h3><p class="source">出处：《AI大模型面试题-基础篇》模型量化相关内容；部署视角和版本/硬件说明为 AI补充/纠错。</p><p><b>白话：</b>模型参数原本可能用 FP16/BF16 等较高精度表示。量化尝试用更少 bit 表示权重或激活，以降低存储、显存和内存带宽压力。</p><pre>FP16/BF16
+   ↓ quantize
+ INT8 / INT4
+   ↓
+更小模型占用 / 更低带宽压力
+   ↕
+可能出现精度损失与额外量化开销</pre><p><b>PTQ vs QAT：</b>PTQ 在训练完成后量化，部署门槛相对低；QAT 在训练过程中模拟量化影响，让模型适应低精度，但训练成本更高。</p><p><b>与蒸馏/剪枝：</b>量化主要降低数值位宽；蒸馏让小模型学习大模型能力；剪枝减少部分参数/结构。三者优化维度不同，可以组合但不能混为一谈。</p><p><b>项目：</b>部署本地推理服务时不能只看“INT4 文件更小”，还要在目标 GPU/CPU 上测吞吐、TTFT、任务准确率和框架 kernel 支持。</p><p><b>AI补充/纠错：</b>INT4 不等于一定比 INT8 更快或更值得部署；如果硬件/推理框架没有高效 kernel，理论上的位宽优势可能不能转化成实际吞吐优势。</p><p><b>追问：</b>为什么量化会掉精度？PTQ 与 QAT 如何选？量化一定加速吗？回答围绕表示误差、训练成本和硬件支持。</p><p><b>30秒口述：</b>量化是把模型权重或激活从较高精度压到 INT8、INT4 等更低位宽，以减少模型占用和内存带宽压力，通常能改善部署成本，但可能牺牲精度。PTQ 是训练后量化，QAT 是训练时适应量化；最终要在真实硬件和任务上评测。</p><p class="memory">一句话：量化是用更少的 bit 换更低资源成本，但要拿精度和实现复杂度做交换。</p></section>
+<section class="card"><h2>Day 33 总结</h2><p>今天把 Redis 的 TTL 生命周期、内存压力和跨实例互斥区分开，同时进入 Agent Planning 与模型低精度部署：系统设计的共同点是先明确问题边界，再选择对应机制。</p><p><a href="./2026-10-01.html">← Day 32</a>　<a href="./2026-10-03.html">Day 34 →</a>　<a href="./index.html">学习首页</a></p></section></main></body></html>
