@@ -1,0 +1,107 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>正式 Day 34｜Redis 复制、Sentinel、Cluster、Agent 状态机与 KV Cache</title><style>:root{--bg:#f5f6f8;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--soft:#f3f4f6}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;line-height:1.75}.container{width:min(1000px,calc(100% - 32px));margin:36px auto 64px}.hero,.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px;margin-bottom:18px}.hero h1{margin:0 0 8px;font-size:28px}h2{margin:30px 0 14px}h3{margin:22px 0 8px}h4{margin:18px 0 6px}.muted,.source{color:var(--muted)}.source{font-size:13px;border-left:3px solid #d1d5db;padding-left:10px}.tag{display:inline-block;background:var(--soft);border-radius:999px;padding:3px 9px;font-size:12px;margin:2px}pre{background:#111827;color:#f9fafb;padding:16px;border-radius:12px;overflow:auto;white-space:pre-wrap}code{font-family:Consolas,monospace}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid var(--border);padding:9px;text-align:left;vertical-align:top}details{background:var(--soft);padding:12px 14px;border-radius:10px;margin:8px 0}summary{cursor:pointer;font-weight:700}.memory{font-weight:700}.nav a{color:#374151;margin-right:14px}</style></head><body><main class="container"><section class="hero"><h1>正式 Day 34｜Redis 复制、Sentinel、Cluster、Agent 状态机与 KV Cache</h1><div class="muted">2026-10-03｜昨日复习 → 今日 5 道新题</div><div><span class="tag">Redis</span><span class="tag">Sentinel</span><span class="tag">Cluster</span><span class="tag">Agent</span><span class="tag">KV Cache</span></div></section>
+<h2>① 前一天复习｜Day 33</h2><section class="card"><p>先凭记忆回答，再展开答案。</p>
+<details><summary>1. Redis 过期删除和内存淘汰解决的是同一个问题吗？</summary><p>不是。过期删除处理 TTL 已到的数据；内存淘汰是在达到 maxmemory 等内存压力时，根据策略选择 Key 移除。一个是生命周期问题，一个是容量压力问题。</p></details>
+<details><summary>2. LRU 与 LFU 的判断依据有什么不同？</summary><p>LRU 更关注“最近多久没访问”，LFU 更关注“一段时间内访问频率”。热点长期稳定时 LFU 往往更贴近频率特征，但实际效果仍取决于访问模式和 Redis 的近似实现。</p></details>
+<details><summary>3. Redis 分布式锁为什么需要 NX + TTL + 唯一 Token + 原子释放？</summary><p>NX 负责只让一个竞争者成功；TTL 防止持锁者崩溃造成永久死锁；唯一 Token 标识锁的主人；释放时必须原子完成“比较 Token + 删除”，否则旧线程可能误删别人后来获得的新锁。</p></details>
+<details><summary>4. Agent Planning 为什么不能等于让 LLM 自己无限执行？</summary><p>LLM 可以提出步骤，但执行层必须有权限、预算、最大步数、超时、重试和终止条件，否则容易循环调用、成本失控或执行越权操作。</p></details>
+<details><summary>5. INT8 / INT4 量化拿什么换什么？</summary><p>用更低位宽表示权重/激活，以降低显存、内存带宽和推理成本，代价可能是精度下降以及额外的量化/反量化开销。INT4 并不天然优于 INT8，应按模型、任务和硬件实测。</p></details>
+<p class="source">原资料出处：Day 33 对应《后端高频面试题大集合》Redis 过期/淘汰/分布式锁相关题、《AI应用开发面试题 / Agent / RAG》Planning 相关内容、《AI大模型面试题-基础篇》量化相关内容。以上扩展解释属于 AI补充/纠错。</p></section>
+
+<h2>② 今日新学习｜5 道</h2>
+<section class="card"><h3>后端 #98｜Redis 主从复制</h3><p class="source">原资料出处：《后端高频面试题大集合》Redis 主从复制相关题。AI补充/纠错：复制协议细节会随 Redis 版本演进，面试重点应放在全量/增量、offset/backlog 与异步复制带来的一致性边界。</p>
+<h4>白话：解决什么问题？</h4><p>如果所有数据只在一个 Redis Primary 上，机器挂掉就没有在线副本。主从复制让 Replica 持续跟随 Primary，既为故障切换准备副本，也可在特定架构中承担部分读流量。</p>
+<h4>核心流程</h4><pre>Client write
+   ↓
+Primary ──写入本地数据
+   ├─→ 返回客户端（通常不等待所有 Replica）
+   └─→ replication stream
+          ↓
+       Replica apply</pre><p>Replica 初次接入或无法继续增量时需要全量同步；正常短暂断线后，如果所需变更仍在复制 backlog 中，可根据 replication offset 继续增量同步。</p>
+<h4>为什么会有延迟？</h4><p>Redis 复制通常是异步链路：Primary 写成功到 Replica 应用之间存在时间窗口。因此刚写完就去 Replica 读，可能读到旧值。读写分离必须先明确业务是否容忍这种最终一致窗口。</p>
+<h4>真实项目</h4><p>例如用户修改权限后立即查询。如果权限读请求被路由到延迟 Replica，短时间可能仍看到旧权限。强依赖“读己之写”的操作可以固定读 Primary，普通统计/展示类读请求才更适合 Replica。</p>
+<h4>容易混淆</h4><table><tr><th>概念</th><th>作用</th></tr><tr><td>Replication</td><td>维持在线副本</td></tr><tr><td>Persistence</td><td>重启后恢复</td></tr><tr><td>Backup</td><td>历史时间点恢复</td></tr></table><p>Replica 不能简单当 Backup：误删命令也可能被复制过去。</p>
+<h4>追问</h4><p><b>1. 全量和增量同步怎么选？</b> 能根据 offset/backlog 接续就增量，否则需要重新同步更大范围数据。<br><b>2. Replica 能保证零数据丢失吗？</b> 异步复制存在窗口，不能简单承诺零丢失。<br><b>3. 为什么读写分离可能出 bug？</b> 因为 Replica 延迟会破坏 read-after-write。</p>
+<p><b>30秒面试口述：</b>Redis 主从复制让 Replica 持续同步 Primary，为高可用和读扩展提供基础。首次或无法续传时做全量同步，短暂断线可借助 offset 和 replication backlog 做增量续传。因为复制通常异步，所以 Replica 可能有延迟，强一致读不能无脑走从库。</p><p class="memory">一句话：复制解决“还有没有在线副本”，不保证“每个副本此刻完全一致”。</p></section>
+
+<section class="card"><h3>后端 #99｜Redis Sentinel</h3><p class="source">原资料出处：《后端高频面试题大集合》Redis Sentinel / 高可用相关题。AI补充/纠错：具体选举与故障转移细节不要简化成“quorum 就是选举票数”；quorum 主要参与客观下线判断，实际 failover 还涉及 Sentinel 之间的领导者选举等机制。</p>
+<h4>白话</h4><p>有 Replica 还不够：Primary 挂了以后，总得有人判断它真的挂了、挑一个 Replica 升级，并通知其他节点跟随新的 Primary。Sentinel 就是负责监控和组织故障切换的控制角色。</p>
+<h4>流程</h4><pre>Sentinel A/B/C
+   ↓ monitor
+Primary + Replicas
+   ↓ Primary 疑似不可达
+主观下线(SDOWN)
+   ↓ 多 Sentinel 达成条件
+客观下线(ODOWN)
+   ↓ 选出负责本次 failover 的 Sentinel
+选择 Replica → promote
+   ↓
+其他 Replica 改跟新 Primary
+   ↓
+客户端/配置发现新 Primary</pre>
+<h4>主观 vs 客观下线</h4><p>一个 Sentinel 自己判断目标不可达属于主观下线；多个 Sentinel 的判断达到配置的 quorum 后，才形成客观下线判断。这是为了避免单个监控节点网络抖动就触发换主。</p>
+<h4>为什么不能只部署一个 Sentinel？</h4><p>单 Sentinel 自己也可能故障或发生网络隔离，缺乏多观察者判断能力。生产通常需要多个独立 Sentinel，并结合部署拓扑避免同一故障域。</p>
+<h4>Sentinel vs Cluster</h4><p>Sentinel 典型解决的是一组 Primary/Replica 的监控和自动故障转移；Redis Cluster 除高可用外还负责数据分片，把不同 slot 分散到多个 Primary。</p>
+<h4>追问</h4><p><b>1. quorum 是什么？</b> 达到多少 Sentinel 同意目标不可达以形成 ODOWN 的配置阈值，不应简单等同所有选举过程。<br><b>2. 旧 Primary 恢复怎么办？</b> 故障转移完成后应按新拓扑重新加入并跟随当前 Primary，避免双主写入。<br><b>3. Sentinel 自己存业务数据吗？</b> 不负责业务数据存储，它是监控/协调组件。</p>
+<p><b>30秒面试口述：</b>Sentinel 用来监控 Redis 主从拓扑并自动故障转移。单个 Sentinel 先产生主观下线判断，多 Sentinel 达到 quorum 后形成客观下线，再由负责 failover 的 Sentinel 选择合适 Replica 晋升，并重配置其他 Replica。它解决高可用控制，不负责数据分片。</p><p class="memory">一句话：Sentinel 不存业务数据，它负责发现故障并组织换主。</p></section>
+
+<section class="card"><h3>后端 #100｜Redis Cluster</h3><p class="source">原资料出处：《后端高频面试题大集合》Redis Cluster 相关题。AI补充/纠错：slot 路由、MOVED/ASK 与故障切换细节应结合具体 Redis 版本理解；这里聚焦面试核心机制。</p>
+<h4>白话</h4><p>一台 Primary 的内存和吞吐总有上限。Cluster 不只是“多放几个副本”，而是把 Key 空间切成 16384 个 hash slot，再把 slot 分给多个 Primary，让数据真正横向分布。</p>
+<h4>路由</h4><pre>key
+ ↓ CRC16
+CRC16(key) mod 16384
+ ↓
+slot 0..16383
+ ↓
+负责该 slot 的 Primary
+ ↓
+value</pre><p>客户端如果访问错节点，节点可以返回重定向信息。稳定归属变化通常会遇到 MOVED；迁移过程中的临时路由会涉及 ASK。现代客户端一般维护 slot→node 映射，避免每次都随机撞节点。</p>
+<h4>Hash Tag</h4><p>多 Key 操作通常要求相关 Key 位于同一 slot。可利用花括号部分作为 hash tag，例如 <code>order:{1001}:detail</code> 与 <code>order:{1001}:items</code> 可被设计到同一 slot。但滥用同一个 tag 会制造数据和流量倾斜。</p>
+<h4>Cluster vs Sentinel</h4><table><tr><th></th><th>Sentinel</th><th>Cluster</th></tr><tr><td>数据分片</td><td>否</td><td>是</td></tr><tr><td>故障转移</td><td>是</td><td>是</td></tr><tr><td>容量横向扩展</td><td>主要不是</td><td>核心能力</td></tr></table>
+<h4>项目例子</h4><p>如果缓存数据从几十 GB 增长到几百 GB，单 Primary + Replica 即使 Sentinel 自动切换，也没有解决单机容量问题。Cluster 可以把 slot 分到多个 Primary，并为各 Primary 配 Replica。</p>
+<h4>追问</h4><p><b>1. 为什么是 slot 而不是直接 key→node？</b> slot 作为中间层使迁移和拓扑调整更易管理，不需要逐 Key 保存全局节点映射。<br><b>2. MOVED 与 ASK？</b> MOVED 表示后续应更新稳定路由；ASK 常用于 slot 迁移过程的临时访问。<br><b>3. Cluster 能解决单 Hot Key 吗？</b> 不能，同一个 Key 仍属于一个 slot，热点需要另行分流。</p>
+<p><b>30秒面试口述：</b>Redis Cluster 用 16384 个 hash slot 做数据分片，Key 通过 CRC16 映射到 slot，再由负责该 slot 的 Primary 提供服务。客户端维护 slot 路由，拓扑变化会遇到 MOVED，迁移阶段可能遇到 ASK。它与 Sentinel 的关键区别是 Cluster 还解决数据分片和容量横向扩展。</p><p class="memory">一句话：Sentinel 解决“主挂了怎么办”，Cluster 还解决“数据怎么分到多台机器”。</p></section>
+
+<section class="card"><h3>Agent 1.1.13｜Agent 状态机与终止条件</h3><p class="source">原资料出处：《AI应用开发面试题 / Agent / RAG》Agent 执行/规划相关内容。AI补充/纠错：状态机、预算与 Java/Spring 实现是工程化扩展，不应把某个框架的具体 API 当成原资料原文。</p>
+<h4>白话</h4><p>Agent 最大的工程风险之一不是“不会调用工具”，而是“停不下来”：模型可能重复搜索、反复调用同一个 Tool、在失败后无限重试。状态机就是把每一步变成系统可观察、可限制的状态。</p>
+<h4>典型控制流</h4><pre>START
+  ↓
+PLAN
+  ↓
+ACT → Tool Call
+  ↓
+OBSERVE
+  ↓
+DECIDE ──需要继续→ PLAN/ACT
+  └──────完成/超预算/失败→ END</pre>
+<h4>为什么不能只写 while(!done)</h4><p>因为 <code>done</code> 如果完全交给 LLM 判断，就缺少确定性保护。系统应至少维护 <code>maxSteps</code>、deadline、tokenBudget、costBudget、连续失败次数和重复调用检测。</p>
+<h4>Spring Boot 思路</h4><pre>record AgentState(
+  int step,
+  Instant deadline,
+  long tokenUsed,
+  Set&lt;String&gt; recentToolFingerprints,
+  Status status
+) {}</pre><p>每轮先由 Java 检查预算和状态，再调用模型。模型只能提出下一动作；Tool Dispatcher 继续执行权限校验、参数校验和超时。执行结果写回 state，之后才进入下一轮。</p>
+<h4>为什么这样设计</h4><p>LLM 是概率系统，适合判断和生成，不适合作为唯一的安全控制器。把终止条件放在确定性的 Java 层，可以保证即使模型连续犯错，系统也会在固定边界停止。</p>
+<h4>追问</h4><p><b>1. maxSteps 越大越好吗？</b> 不是，会增加成本和循环风险，应按任务复杂度设置。<br><b>2. 怎么检测重复 Tool Call？</b> 可对 toolName + 规范化参数做 fingerprint，并结合最近 N 次 Observation 判断是否无进展。<br><b>3. Planning 和状态机一样吗？</b> 不一样，Planning 决定准备做什么；状态机负责执行阶段、转移规则和终止控制。</p>
+<p><b>30秒面试口述：</b>生产 Agent 我会用显式状态机管理 PLAN、ACT、OBSERVE、DECIDE 等阶段，并由 Java 层维护最大步数、deadline、Token/成本预算、失败次数和重复调用检测。LLM 可以决定下一步，但不能拥有无限执行权，这样才能避免死循环和成本失控。</p><p class="memory">一句话：LLM 可以决定下一步，但系统必须决定什么时候停。</p></section>
+
+<section class="card"><h3>AI基础 #49｜KV Cache</h3><p class="source">原资料出处：《AI大模型面试题-基础篇》推理优化 / KV Cache 相关内容。AI补充/纠错：以下用现代自回归 Transformer 推理的 Prefill/Decode 视角展开；具体显存占用取决于模型架构、精度、上下文长度和推理框架。</p>
+<h4>白话</h4><p>聊天模型生成第 1001 个 Token 时，需要关注前面 1000 个 Token。如果每生成一个新 Token 都把前面所有 Token 的 Key/Value 投影重新算一遍，会产生大量重复计算。KV Cache 就把历史 Token 已算出的 K/V 保存起来，下一步直接复用。</p>
+<h4>Prefill 与 Decode</h4><pre>Prompt tokens
+   ↓
+Prefill：一次处理已有上下文
+   ↓
+保存每层历史 K/V
+   ↓
+Decode token #1
+   ├─只计算新 token 的 Q/K/V
+   └─Attention 使用 [历史 KV Cache + 新 KV]
+   ↓
+Decode token #2 ...</pre>
+<h4>为什么它吃显存</h4><p>上下文越长，需要保存的历史 K/V 越多；并发请求越多，同时驻留的 KV Cache 也越多。因此长上下文模型即使权重不变，服务端推理显存仍可能快速增加。</p>
+<h4>KV Cache vs Prompt Cache</h4><p>KV Cache 是模型推理过程中缓存 Attention 的 K/V 张量；“Prompt Cache”这个词在不同平台可能指复用相同 Prompt 前缀的计算结果或其他服务级缓存。两者不能不加定义就当成完全相同概念。</p>
+<h4>实际项目</h4><p>Spring AI 应用本身通常不会手工操作 GPU KV Cache，它主要发生在模型服务端。但做容量设计时必须理解：把 RAG Context 从 4K 扩到 100K，成本不仅是输入 Token 费用，还可能显著增加 Prefill 时间和 KV Cache 内存压力。</p>
+<h4>常见坑</h4><p>认为 KV Cache 能缓存“最终答案”；认为它减少所有 Attention 计算；认为长 Context 只有 API Token 成本，没有推理内存成本。</p>
+<h4>追问</h4><p><b>1. KV Cache 为什么主要帮助 Decode？</b> 因为自回归生成时历史 K/V 可复用，不必每步重算。<br><b>2. 上下文越长为什么 TTFT 也可能增加？</b> Prefill 要处理更长输入。<br><b>3. KV Cache 和 RAG Cache 一样吗？</b> 完全不同：前者是模型推理张量缓存，后者通常是应用层检索/结果缓存。</p>
+<p><b>30秒面试口述：</b>KV Cache 是自回归 Transformer 推理优化：Prefill 后保存历史 Token 在各层的 Key/Value，后续 Decode 每生成一个新 Token 时复用历史 K/V，避免重复投影计算。代价是上下文越长、并发越高，KV Cache 占用的显存越大。</p><p class="memory">一句话：KV Cache 是拿显存保存历史计算，换取后续 Token 更快生成。</p></section>
+<section class="card"><h2>Day 34 总结</h2><p>今天把 Redis 高可用链路串起来：Replication 提供副本，Sentinel 负责监控与换主，Cluster 再加入分片与横向扩展；Agent 侧把“何时停止”交给确定性状态机；LLM 推理侧理解 KV Cache 如何用显存换 Decode 效率。</p><div class="nav"><a href="./2026-10-01.html">← 最近已发布 Day 32</a><a href="./index.html">学习首页</a></div></section></main></body></html>
