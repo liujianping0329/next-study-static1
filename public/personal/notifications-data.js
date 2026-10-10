@@ -1,5 +1,5 @@
 window.PERSONAL_NOTIFICATIONS={
-  updatedAt:"2026-10-08T10:02:53+09:00",
+  updatedAt:"2026-10-10T15:02:59+09:00",
   groups:[
     {
       id:"xxl-woofia",
@@ -8,6 +8,7 @@ window.PERSONAL_NOTIFICATIONS={
       source:"@XXLWOOFIA",
       redeemPath:"游戏左侧「设置」→「其他」→「兑换码」→「兑换」",
       items:[
+        {code:"KAP9JTTP3USKRJL",reward:"",expiresAt:"2026-11-01T00:59:00+09:00",publishedAt:"2026-10-09",sourceType:"official"},
         {code:"AAHDHCBXGY56UPC",reward:"",expiresAt:"2026-11-01T00:59:00+09:00",publishedAt:"2026-10-03",sourceType:"official"},
         {code:"PAB8JNTPNUPAQE5",reward:"",expiresAt:"2026-10-31T23:59:00+08:00",publishedAt:"2026-10-03",sourceType:"official"},
         {code:"EAXNHQMWDXXUYX6",reward:"",expiresAt:"2026-10-16T00:59:00+09:00",publishedAt:"2026-09-27",sourceType:"official"},
