@@ -1,8 +1,8 @@
 window.WEATHER_DATA = {
   "version": 1,
-  "generatedAt": "2026-10-16T18:04:49+09:00",
+  "generatedAt": "2026-10-16T20:57:56+09:00",
   "timezone": "Asia/Tokyo",
-  "source": "MSN Weatherを先に確認したが必要な25時間の完全な構造化データを取得できなかったため、日本気象協会 tenki.jp（2026-10-16 17:00発表）のネイティブ1時間予報を使用。風速はm/sからkm/hへ換算。UVは取得不可のため安全値0。",
+  "source": "MSN Weatherを先に確認したが必要な25時間の完全な構造化データを取得できなかったため、日本気象協会 tenki.jp（2026-10-16 20:00発表）のネイティブ1時間予報を使用。風速はm/sからkm/hへ換算。UVは取得不可のため安全値0。",
   "locations": [
     {
       "id": "kinshicho",
@@ -12,45 +12,12 @@ window.WEATHER_DATA = {
       "lon": 139.8143,
       "hours": [
         {
-          "time": "2026-10-16T18:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 22.5,
-          "humidity": 51,
-          "precipProbability": 20,
-          "uv": 0,
-          "windKph": 3.6
-        },
-        {
-          "time": "2026-10-16T19:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 22.2,
-          "humidity": 55,
-          "precipProbability": 20,
-          "uv": 0,
-          "windKph": 3.6
-        },
-        {
-          "time": "2026-10-16T20:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 21.6,
-          "humidity": 61,
-          "precipProbability": 20,
-          "uv": 0,
-          "windKph": 3.6
-        },
-        {
           "time": "2026-10-16T21:00:00+09:00",
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 21.4,
-          "humidity": 65,
+          "temp": 20.6,
+          "humidity": 69,
           "precipProbability": 30,
           "uv": 0,
           "windKph": 3.6
@@ -60,8 +27,8 @@ window.WEATHER_DATA = {
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 21.3,
-          "humidity": 67,
+          "temp": 20.7,
+          "humidity": 66,
           "precipProbability": 30,
           "uv": 0,
           "windKph": 3.6
@@ -71,8 +38,8 @@ window.WEATHER_DATA = {
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 20.8,
-          "humidity": 66,
+          "temp": 20.5,
+          "humidity": 63,
           "precipProbability": 30,
           "uv": 0,
           "windKph": 3.6
@@ -82,9 +49,9 @@ window.WEATHER_DATA = {
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 20.2,
-          "humidity": 67,
-          "precipProbability": 20,
+          "temp": 20.1,
+          "humidity": 65,
+          "precipProbability": 30,
           "uv": 0,
           "windKph": 3.6
         },
@@ -93,8 +60,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 19.6,
-          "humidity": 72,
+          "temp": 19.8,
+          "humidity": 69,
           "precipProbability": 10,
           "uv": 0,
           "windKph": 3.6
@@ -105,7 +72,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 19.3,
-          "humidity": 76,
+          "humidity": 73,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -115,9 +82,9 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 18.9,
+          "temp": 18.8,
           "humidity": 79,
-          "precipProbability": 10,
+          "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
         },
@@ -127,8 +94,8 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 18.7,
-          "humidity": 77,
-          "precipProbability": 10,
+          "humidity": 78,
+          "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
         },
@@ -138,10 +105,10 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 18.2,
-          "humidity": 75,
-          "precipProbability": 0,
+          "humidity": 77,
+          "precipProbability": 10,
           "uv": 0,
-          "windKph": 3.6
+          "windKph": 7.2
         },
         {
           "time": "2026-10-17T06:00:00+09:00",
@@ -149,7 +116,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 18,
-          "humidity": 74,
+          "humidity": 75,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -159,7 +126,7 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 18.4,
+          "temp": 18.6,
           "humidity": 67,
           "precipProbability": 0,
           "uv": 0,
@@ -171,7 +138,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 19.7,
-          "humidity": 57,
+          "humidity": 55,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -181,8 +148,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 21,
-          "humidity": 52,
+          "temp": 20.9,
+          "humidity": 50,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -192,8 +159,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 22,
-          "humidity": 49,
+          "temp": 22.1,
+          "humidity": 48,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -203,8 +170,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 22.9,
-          "humidity": 46,
+          "temp": 23,
+          "humidity": 44,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -214,8 +181,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 23.8,
-          "humidity": 43,
+          "temp": 23.7,
+          "humidity": 42,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -225,8 +192,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 25.1,
-          "humidity": 41,
+          "temp": 25,
+          "humidity": 40,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -247,8 +214,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 25.2,
-          "humidity": 40,
+          "temp": 25.1,
+          "humidity": 41,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -262,7 +229,7 @@ window.WEATHER_DATA = {
           "humidity": 42,
           "precipProbability": 0,
           "uv": 0,
-          "windKph": 3.6
+          "windKph": 7.2
         },
         {
           "time": "2026-10-17T17:00:00+09:00",
@@ -281,10 +248,43 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 21.1,
-          "humidity": 52,
+          "humidity": 51,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 3.6
+        },
+        {
+          "time": "2026-10-17T19:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 20.2,
+          "humidity": 55,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
+        },
+        {
+          "time": "2026-10-17T20:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 19.5,
+          "humidity": 60,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 7.2
+        },
+        {
+          "time": "2026-10-17T21:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 18.9,
+          "humidity": 63,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 3.6
         }
       ]
     },
@@ -296,45 +296,12 @@ window.WEATHER_DATA = {
       "lon": 139.7005,
       "hours": [
         {
-          "time": "2026-10-16T18:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 22.2,
-          "humidity": 51,
-          "precipProbability": 20,
-          "uv": 0,
-          "windKph": 3.6
-        },
-        {
-          "time": "2026-10-16T19:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 21.9,
-          "humidity": 55,
-          "precipProbability": 30,
-          "uv": 0,
-          "windKph": 3.6
-        },
-        {
-          "time": "2026-10-16T20:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 21.5,
-          "humidity": 59,
-          "precipProbability": 20,
-          "uv": 0,
-          "windKph": 3.6
-        },
-        {
           "time": "2026-10-16T21:00:00+09:00",
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 21.3,
-          "humidity": 62,
+          "temp": 20.7,
+          "humidity": 65,
           "precipProbability": 30,
           "uv": 0,
           "windKph": 3.6
@@ -344,8 +311,8 @@ window.WEATHER_DATA = {
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 21.1,
-          "humidity": 61,
+          "temp": 20.6,
+          "humidity": 62,
           "precipProbability": 30,
           "uv": 0,
           "windKph": 3.6
@@ -355,20 +322,20 @@ window.WEATHER_DATA = {
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 20.6,
-          "humidity": 60,
+          "temp": 20.5,
+          "humidity": 59,
           "precipProbability": 30,
           "uv": 0,
           "windKph": 7.2
         },
         {
           "time": "2026-10-17T00:00:00+09:00",
-          "type": "sunny",
-          "label": "晴れ",
-          "icon": "☀️",
+          "type": "cloudy",
+          "label": "曇り",
+          "icon": "☁️",
           "temp": 20.2,
-          "humidity": 60,
-          "precipProbability": 20,
+          "humidity": 57,
+          "precipProbability": 30,
           "uv": 0,
           "windKph": 7.2
         },
@@ -377,8 +344,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 19.4,
-          "humidity": 65,
+          "temp": 19.8,
+          "humidity": 61,
           "precipProbability": 10,
           "uv": 0,
           "windKph": 7.2
@@ -388,8 +355,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 19.1,
-          "humidity": 71,
+          "temp": 19.2,
+          "humidity": 69,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -400,8 +367,8 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 18.7,
-          "humidity": 75,
-          "precipProbability": 10,
+          "humidity": 74,
+          "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
         },
@@ -411,8 +378,8 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 18.5,
-          "humidity": 76,
-          "precipProbability": 10,
+          "humidity": 75,
+          "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
         },
@@ -421,9 +388,9 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 17.7,
-          "humidity": 75,
-          "precipProbability": 0,
+          "temp": 17.6,
+          "humidity": 76,
+          "precipProbability": 10,
           "uv": 0,
           "windKph": 7.2
         },
@@ -432,8 +399,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 17.5,
-          "humidity": 72,
+          "temp": 17.3,
+          "humidity": 75,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -444,7 +411,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 18.3,
-          "humidity": 65,
+          "humidity": 64,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -454,11 +421,11 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 19.8,
-          "humidity": 56,
+          "temp": 19.7,
+          "humidity": 55,
           "precipProbability": 0,
           "uv": 0,
-          "windKph": 7.2
+          "windKph": 10.8
         },
         {
           "time": "2026-10-17T09:00:00+09:00",
@@ -466,7 +433,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 21,
-          "humidity": 51,
+          "humidity": 50,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -477,7 +444,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 22.1,
-          "humidity": 47,
+          "humidity": 46,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -488,7 +455,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 23,
-          "humidity": 44,
+          "humidity": 42,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -499,7 +466,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 23.8,
-          "humidity": 40,
+          "humidity": 39,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -510,7 +477,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 24.9,
-          "humidity": 38,
+          "humidity": 37,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -521,7 +488,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 25.4,
-          "humidity": 37,
+          "humidity": 36,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -531,7 +498,7 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 25.2,
+          "temp": 25.1,
           "humidity": 37,
           "precipProbability": 0,
           "uv": 0,
@@ -543,7 +510,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 23.7,
-          "humidity": 39,
+          "humidity": 40,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -564,8 +531,41 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 20.9,
+          "temp": 20.8,
           "humidity": 53,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 7.2
+        },
+        {
+          "time": "2026-10-17T19:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 19.9,
+          "humidity": 56,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 7.2
+        },
+        {
+          "time": "2026-10-17T20:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 19.2,
+          "humidity": 60,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 7.2
+        },
+        {
+          "time": "2026-10-17T21:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 18.8,
+          "humidity": 63,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -580,44 +580,11 @@ window.WEATHER_DATA = {
       "lon": 136.6839,
       "hours": [
         {
-          "time": "2026-10-16T18:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 22.2,
-          "humidity": 59,
-          "precipProbability": 30,
-          "uv": 0,
-          "windKph": 18
-        },
-        {
-          "time": "2026-10-16T19:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 21.5,
-          "humidity": 61,
-          "precipProbability": 30,
-          "uv": 0,
-          "windKph": 14.4
-        },
-        {
-          "time": "2026-10-16T20:00:00+09:00",
-          "type": "cloudy",
-          "label": "曇り",
-          "icon": "☁️",
-          "temp": 21.1,
-          "humidity": 64,
-          "precipProbability": 30,
-          "uv": 0,
-          "windKph": 10.8
-        },
-        {
           "time": "2026-10-16T21:00:00+09:00",
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 20.6,
+          "temp": 20.7,
           "humidity": 66,
           "precipProbability": 30,
           "uv": 0,
@@ -628,8 +595,8 @@ window.WEATHER_DATA = {
           "type": "cloudy",
           "label": "曇り",
           "icon": "☁️",
-          "temp": 20.2,
-          "humidity": 69,
+          "temp": 20.3,
+          "humidity": 67,
           "precipProbability": 20,
           "uv": 0,
           "windKph": 10.8
@@ -639,9 +606,9 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 19.8,
-          "humidity": 71,
-          "precipProbability": 10,
+          "temp": 20.1,
+          "humidity": 70,
+          "precipProbability": 0,
           "uv": 0,
           "windKph": 10.8
         },
@@ -650,7 +617,7 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 19.3,
+          "temp": 19.5,
           "humidity": 73,
           "precipProbability": 0,
           "uv": 0,
@@ -661,8 +628,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 19,
-          "humidity": 76,
+          "temp": 18.9,
+          "humidity": 77,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -673,7 +640,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 18.5,
-          "humidity": 77,
+          "humidity": 78,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -683,7 +650,7 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 18.2,
+          "temp": 18.4,
           "humidity": 78,
           "precipProbability": 0,
           "uv": 0,
@@ -694,8 +661,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 17.7,
-          "humidity": 78,
+          "temp": 17.8,
+          "humidity": 79,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -717,7 +684,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 16.3,
-          "humidity": 80,
+          "humidity": 79,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -728,7 +695,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 17.2,
-          "humidity": 77,
+          "humidity": 76,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 10.8
@@ -738,8 +705,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 19.8,
-          "humidity": 66,
+          "temp": 19.9,
+          "humidity": 65,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 10.8
@@ -749,8 +716,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 21.7,
-          "humidity": 55,
+          "temp": 21.8,
+          "humidity": 54,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 10.8
@@ -761,7 +728,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 23.5,
-          "humidity": 47,
+          "humidity": 46,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 10.8
@@ -772,7 +739,7 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 25,
-          "humidity": 41,
+          "humidity": 40,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -782,19 +749,19 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 27.1,
-          "humidity": 36,
+          "temp": 26.4,
+          "humidity": 35,
           "precipProbability": 0,
           "uv": 0,
-          "windKph": 3.6
+          "windKph": 7.2
         },
         {
           "time": "2026-10-17T13:00:00+09:00",
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 28.2,
-          "humidity": 33,
+          "temp": 28.1,
+          "humidity": 31,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -804,8 +771,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 28,
-          "humidity": 33,
+          "temp": 28.4,
+          "humidity": 31,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 3.6
@@ -815,8 +782,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 26.6,
-          "humidity": 36,
+          "temp": 27.6,
+          "humidity": 34,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -826,8 +793,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 25.4,
-          "humidity": 40,
+          "temp": 25.5,
+          "humidity": 38,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -837,8 +804,8 @@ window.WEATHER_DATA = {
           "type": "sunny",
           "label": "晴れ",
           "icon": "☀️",
-          "temp": 23.6,
-          "humidity": 48,
+          "temp": 23.7,
+          "humidity": 47,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
@@ -849,10 +816,43 @@ window.WEATHER_DATA = {
           "label": "晴れ",
           "icon": "☀️",
           "temp": 22.1,
-          "humidity": 56,
+          "humidity": 55,
           "precipProbability": 0,
           "uv": 0,
           "windKph": 7.2
+        },
+        {
+          "time": "2026-10-17T19:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 20.8,
+          "humidity": 63,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 7.2
+        },
+        {
+          "time": "2026-10-17T20:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 19.9,
+          "humidity": 67,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 3.6
+        },
+        {
+          "time": "2026-10-17T21:00:00+09:00",
+          "type": "sunny",
+          "label": "晴れ",
+          "icon": "☀️",
+          "temp": 19,
+          "humidity": 70,
+          "precipProbability": 0,
+          "uv": 0,
+          "windKph": 3.6
         }
       ]
     }
