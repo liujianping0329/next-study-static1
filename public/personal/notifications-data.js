@@ -1,5 +1,5 @@
 window.PERSONAL_NOTIFICATIONS={
-  updatedAt:"2026-10-30T22:58:48+09:00",
+  updatedAt:"2026-10-31T09:55:48+09:00",
   groups:[
     {
       id:"xxl-woofia",
@@ -8,7 +8,7 @@ window.PERSONAL_NOTIFICATIONS={
       source:"@XXLWOOFIA",
       redeemPath:"游戏左侧「设置」→「其他」→「兑换码」→「兑换」",
       items:[
-        {code:"pride1031",reward:"",expiresAt:"2026-12-01T00:59:00+09:00",publishedAt:"2026-10-30",sourceType:"official"},
+        {code:"pride1031",reward:"虹石 ×10、金酒铃 ×3、能量大满罐 ×1",expiresAt:"2026-12-01T00:59:00+09:00",publishedAt:"2026-10-30",sourceType:"official"},
         {code:"7AS8HD9XRYXWYFC",reward:"",expiresAt:"2026-11-16T00:59:00+09:00",publishedAt:"2026-10-23",sourceType:"official"},
         {code:"KAXHJFTQQUBEU9D",reward:"银酒铃 ×2、特卖型录 ×1、招募传单 ×1",expiresAt:"2026-11-16T00:59:00+09:00",publishedAt:"2026-10-23",sourceType:"official"},
         {code:"6A6NHWPXZYUPXBS",reward:"",expiresAt:"2026-11-16T00:59:00+09:00",publishedAt:"2026-10-16",sourceType:"official"},
