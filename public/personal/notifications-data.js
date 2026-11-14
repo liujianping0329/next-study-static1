@@ -1,5 +1,5 @@
 window.PERSONAL_NOTIFICATIONS={
-  updatedAt:"2026-11-06T22:59:44+09:00",
+  updatedAt:"2026-11-14T15:01:06+09:00",
   groups:[
     {
       id:"xxl-woofia",
@@ -8,6 +8,8 @@ window.PERSONAL_NOTIFICATIONS={
       source:"@XXLWOOFIA",
       redeemPath:"游戏左侧「设置」→「其他」→「兑换码」→「兑换」",
       items:[
+        {code:"3A94JMTQ4UMPXAM",reward:"",expiresAt:"2026-12-01T00:59:00+09:00",publishedAt:"2026-11-13",sourceType:"official"},
+        {code:"HAH7HJCY2ZGZR6W",reward:"",expiresAt:"2026-12-01T00:59:00+09:00",publishedAt:"2026-11-13",sourceType:"official"},
         {code:"BAKLJGTQQUH7WWS",reward:"",expiresAt:"2026-12-01T00:59:00+09:00",publishedAt:"2026-11-06",sourceType:"official"},
         {code:"FAB4HT9YTZD8Q2B",reward:"",expiresAt:"2026-12-01T00:59:00+09:00",publishedAt:"2026-11-06",sourceType:"official"},
         {code:"infurnity_2026",reward:"虹石 ×30、银酒铃 ×2、商店刷新券 ×1",expiresAt:"2026-12-01T00:59:00+09:00",publishedAt:"2026-11-01",sourceType:"official"},
